@@ -4,70 +4,95 @@ import { Snowfall } from '@/components/Snowfall';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { GameSetup } from '@/components/GameSetup';
 import { GameBoard } from '@/components/GameBoard';
-
-type Screen = 'welcome' | 'setup' | 'game';
+import { FinalSetup } from '@/components/FinalSetup';
 
 const Index = () => {
-  const [screen, setScreen] = useState<Screen>('welcome');
   const {
     state,
-    setWord,
-    saveWord,
-    startRound,
+    getCurrentRound,
+    getCurrentPlayer,
+    setupGame,
     spinWheel,
     guessLetter,
-    nextTeam,
+    guessWord,
+    nextPlayer,
+    handlePrizeChoice,
+    usePlusToOpenLetter,
+    eliminateCurrentPlayer,
+    nextRound,
+    setFinalWord,
     getRandomPrize,
     resetGame,
-    backToSetup,
   } = useGameState();
 
-  const handleStartGame = () => {
-    setScreen('setup');
+  const [showWelcome, setShowWelcome] = useState(true);
+
+  const handleStartSetup = () => {
+    setShowWelcome(false);
   };
 
-  const handleStartRound = (wordIndex: number) => {
-    startRound(wordIndex);
-    setScreen('game');
+  const handleStartGame = (rounds: { word: string; hint: string; players: string[] }[]) => {
+    setupGame(rounds);
   };
 
-  const handleBackToSetup = () => {
-    backToSetup();
-    setScreen('setup');
-  };
+  const currentRound = getCurrentRound();
+  const currentPlayer = getCurrentPlayer();
 
-  const handleReset = () => {
-    resetGame();
-    setScreen('welcome');
-  };
+  // Показываем настройку финала
+  const needsFinalSetup = state.phase === 'final' && currentRound && !currentRound.word;
 
   return (
     <div className="min-h-screen overflow-x-hidden">
       <Snowfall />
       
-      {screen === 'welcome' && (
-        <WelcomeScreen onStart={handleStartGame} />
+      {showWelcome && (
+        <WelcomeScreen onStart={handleStartSetup} />
       )}
       
-      {screen === 'setup' && (
-        <GameSetup
-          state={state}
-          onSetWord={setWord}
-          onSaveWord={saveWord}
-          onStartRound={handleStartRound}
+      {!showWelcome && state.phase === 'setup' && (
+        <GameSetup onStartGame={handleStartGame} />
+      )}
+
+      {!showWelcome && needsFinalSetup && (
+        <FinalSetup 
+          finalists={state.finalists}
+          onSetWord={setFinalWord}
         />
       )}
       
-      {screen === 'game' && (
+      {!showWelcome && state.phase !== 'setup' && state.phase !== 'gameover' && !needsFinalSetup && (
         <GameBoard
           state={state}
+          currentRound={currentRound}
+          currentPlayer={currentPlayer}
           onSpin={spinWheel}
-          onGuess={guessLetter}
-          onNextTeam={nextTeam}
+          onGuessLetter={guessLetter}
+          onGuessWord={guessWord}
+          onNextPlayer={nextPlayer}
+          onPrizeChoice={handlePrizeChoice}
+          onUsePlus={usePlusToOpenLetter}
+          onEliminatePlayer={eliminateCurrentPlayer}
+          onNextRound={nextRound}
           getRandomPrize={getRandomPrize}
-          onBackToSetup={handleBackToSetup}
-          onReset={handleReset}
+          onReset={resetGame}
         />
+      )}
+
+      {state.phase === 'gameover' && (
+        <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
+          <div className="text-center">
+            <div className="text-8xl mb-6 animate-float">🎄</div>
+            <h1 className="font-pacifico text-5xl text-accent text-glow mb-6">
+              Игра завершена!
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              Спасибо за игру! С Новым Годом! 🎉
+            </p>
+            <button onClick={resetGame} className="btn-accent text-xl">
+              🔄 Сыграть ещё раз
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
