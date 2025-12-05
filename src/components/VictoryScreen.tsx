@@ -1,29 +1,30 @@
 import { Confetti } from './Confetti';
+import { Player } from '@/hooks/useGameState';
 
 interface VictoryScreenProps {
   word: string;
-  winningTeam: number;
-  score: number;
-  onNextWord: () => void;
+  winner: Player;
+  onNextRound: () => void;
   onPlayAgain: () => void;
+  isFinal?: boolean;
 }
 
-const TEAM_NAMES = ['Мандаринки 🍊', 'Ёлочки 🌲', 'Снежинки ❄️'];
-
-export function VictoryScreen({ word, winningTeam, score, onNextWord, onPlayAgain }: VictoryScreenProps) {
+export function VictoryScreen({ word, winner, onNextRound, onPlayAgain, isFinal }: VictoryScreenProps) {
   return (
     <>
       <Confetti />
       <div className="fixed inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-40 p-4">
         <div className="text-center animate-bounce-in">
-          <div className="text-8xl mb-6 animate-float">🎉</div>
+          <div className="text-8xl mb-6 animate-float">
+            {isFinal ? '👑' : '🎉'}
+          </div>
           
           <h2 className="font-pacifico text-5xl md:text-6xl text-accent text-glow mb-4">
-            ПОБЕДА!
+            {isFinal ? 'ПОБЕДИТЕЛЬ ИГРЫ!' : 'СЛОВО УГАДАНО!'}
           </h2>
           
           <p className="text-2xl text-foreground mb-2">
-            Слово угадано:
+            Слово:
           </p>
           
           <p className="text-4xl md:text-5xl font-bold text-primary text-glow-red mb-6">
@@ -31,15 +32,19 @@ export function VictoryScreen({ word, winningTeam, score, onNextWord, onPlayAgai
           </p>
           
           <div className="bg-card/60 backdrop-blur-sm p-6 rounded-2xl border border-accent/30 mb-8 inline-block">
-            <p className="text-xl text-muted-foreground mb-2">Победитель:</p>
-            <p className="text-3xl font-bold text-accent">{TEAM_NAMES[winningTeam]}</p>
-            <p className="text-2xl text-foreground mt-2">{score} очков! 🏆</p>
+            <p className="text-xl text-muted-foreground mb-2">
+              {isFinal ? 'Главный победитель:' : 'Победитель тура:'}
+            </p>
+            <p className="text-3xl font-bold text-accent">{winner.name}</p>
+            <p className="text-2xl text-foreground mt-2">{winner.score} очков! 🏆</p>
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={onNextWord} className="btn-secondary">
-              🎯 Следующее слово
-            </button>
+            {!isFinal && (
+              <button onClick={onNextRound} className="btn-secondary">
+                🎯 Следующий тур
+              </button>
+            )}
             <button onClick={onPlayAgain} className="btn-accent">
               🔄 Сыграть заново
             </button>

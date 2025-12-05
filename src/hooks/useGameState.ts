@@ -1,113 +1,214 @@
 import { useState, useCallback } from 'react';
 
-export interface GameState {
-  words: [string, string, string];
-  wordsSaved: [boolean, boolean, boolean];
-  currentWordIndex: number | null;
+export interface Player {
+  id: number;
+  name: string;
+  score: number;
+  isEliminated: boolean;
+  consecutiveCorrectGuesses: number; // для правила 3 результативных ходов
+}
+
+export interface Round {
+  word: string;
+  hint: string;
+  players: Player[];
+  currentPlayerIndex: number;
   guessedLetters: string[];
-  teamScores: [number, number, number];
-  currentTeam: number;
+  isComplete: boolean;
+  winnerId: number | null;
+}
+
+export interface GameState {
+  phase: 'setup' | 'qualifying1' | 'qualifying2' | 'qualifying3' | 'final' | 'supergame' | 'gameover';
+  rounds: Round[];
+  currentRoundIndex: number;
+  finalists: Player[];
+  superGameWords: { horizontal: string; vertical1: string; vertical2: string } | null;
+  superGameGuessedLetters: string[];
   lastSpinResult: SpinResult | null;
-  gamePhase: 'setup' | 'playing' | 'victory';
   isSpinning: boolean;
+  mustGuessWord: boolean; // для правила 3 результативных ходов
+  doubleMultiplierUsed: number; // сколько раз использован удвоитель
+  hasChanceBonus: boolean; // может назвать 2 буквы
+  pendingPrizeChoice: boolean; // ждём решения по призу
+  winner: Player | null;
 }
 
 export interface SpinResult {
-  type: 'points' | 'skip' | 'bankrupt' | 'prize';
+  type: 'points' | 'bankrupt' | 'zero' | 'prize' | 'plus' | 'double' | 'chance';
   value: number;
   label: string;
 }
 
 const WHEEL_SECTORS: SpinResult[] = [
-  { type: 'points', value: 100, label: '+100' },
-  { type: 'points', value: 200, label: '+200' },
-  { type: 'points', value: 300, label: '+300' },
-  { type: 'points', value: 500, label: '+500' },
-  { type: 'points', value: 1000, label: '+1000' },
-  { type: 'skip', value: 0, label: 'Пропуск хода' },
-  { type: 'bankrupt', value: 0, label: 'Банкрот' },
-  { type: 'prize', value: 0, label: '🎁 Приз!' },
+  { type: 'points', value: 50, label: '50' },
+  { type: 'points', value: 100, label: '100' },
+  { type: 'points', value: 150, label: '150' },
+  { type: 'points', value: 200, label: '200' },
+  { type: 'points', value: 250, label: '250' },
+  { type: 'points', value: 300, label: '300' },
+  { type: 'points', value: 500, label: '500' },
+  { type: 'points', value: 1000, label: '1000' },
+  { type: 'bankrupt', value: 0, label: 'БАНКРОТ' },
+  { type: 'zero', value: 0, label: '0' },
+  { type: 'prize', value: 0, label: 'ПРИЗ 🎁' },
+  { type: 'plus', value: 0, label: '+ БУКВА' },
+  { type: 'double', value: 0, label: 'x2' },
+  { type: 'chance', value: 0, label: 'ШАНС' },
 ];
 
 const PRIZES = [
   '13-й мандарин за особые заслуги 🍊',
-  'Сертификат на одно объятие от Деда Мороза (без возврата) 🎅',
-  'Кружка с надписью "я чудом дожил до этого Нового года" ☕',
+  'Сертификат на одно объятие от Деда Мороза 🎅',
+  'Кружка "я чудом дожил до этого Нового года" ☕',
   'Бессрочная лицензия на просмотр ёлки соседа 🌲',
   'VIP-доступ к салату Оливье (1 порция) 🥗',
-  'Пожизненная подписка на снег, который никогда не выпадет вовремя ❄️',
+  'Пожизненная подписка на снег ❄️',
   'Право не мыть посуду 31 декабря 🍽️',
   'Эксклюзивное место у ёлки для селфи 📸',
-  'Один бесплатный "отмаз" от караоке 🎤',
-  'Сертификат "Лучший угадыватель букв 2024" 🏆',
+  'Сертификат "Лучший угадыватель 2024" 🏆',
+  'Бутылка шампанского (виртуальная) 🍾',
 ];
 
 const SUCCESS_COMMENTS = [
-  'Гениально! Прям как Эйнштейн, только в новогодней шапке! 🎓',
+  'Гениально! Прям как Эйнштейн в новогодней шапке! 🎓',
   'Вау! Ты видишь буквы насквозь! 👀',
   'Снегурочка аплодирует стоя! 👏',
   'Дед Мороз одобряет! 🎅',
   'Это было... неожиданно умно! 🧠',
   'Ёлочные игрушки засияли от радости! ✨',
+  'Браво! Так держать! 🎉',
 ];
 
 const FAIL_COMMENTS = [
   'Ой… это было смело, но нет 😅',
-  'Буква ушла за шампанским, её нет в слове 🍾',
-  'Снегурочка расстроилась и ушла к другой команде 😢',
+  'Буква ушла за шампанским 🍾',
+  'Снегурочка ушла к другой команде 😢',
   'Дед Мороз сделал фейспалм 🤦',
-  'Эта буква застряла в пробке на МКАД 🚗',
-  'Буква решила отпраздновать Новый год в другом слове 🎉',
+  'Эта буква застряла в пробке 🚗',
+  'Буква празднует в другом слове 🎉',
   'Мимо! Но мандаринка за старание 🍊',
 ];
 
-const ALREADY_GUESSED_COMMENTS = [
-  'Эй, эта буква уже была! Память как у золотой рыбки? 🐟',
-  'Дежавю? Эту букву уже называли! 🔄',
-  'Снегурочка записала: эту букву уже проверяли! 📝',
-  'Повтор! Дед Мороз начинает нервничать! 😤',
+const WRONG_WORD_COMMENTS = [
+  'Увы! Это было не то слово... Ты выбываешь 😔',
+  'Не угадал! Прощай, друг, увидимся в следующем году! 👋',
+  'Слово было другим... Ты покидаешь раунд! 💔',
 ];
 
+const ALREADY_GUESSED_COMMENTS = [
+  'Эта буква уже была! Память как у рыбки? 🐟',
+  'Дежавю? Эту букву уже называли! 🔄',
+  'Повтор! Дед Мороз нервничает! 😤',
+];
+
+// Нормализация буквы (Ё=Е, Й=И)
+function normalizeLetter(letter: string): string {
+  const upper = letter.toUpperCase();
+  if (upper === 'Ё') return 'Е';
+  if (upper === 'Й') return 'И';
+  return upper;
+}
+
+function normalizeWord(word: string): string {
+  return word.split('').map(normalizeLetter).join('');
+}
+
+const createInitialState = (): GameState => ({
+  phase: 'setup',
+  rounds: [],
+  currentRoundIndex: 0,
+  finalists: [],
+  superGameWords: null,
+  superGameGuessedLetters: [],
+  lastSpinResult: null,
+  isSpinning: false,
+  mustGuessWord: false,
+  doubleMultiplierUsed: 0,
+  hasChanceBonus: false,
+  pendingPrizeChoice: false,
+  winner: null,
+});
+
 export function useGameState() {
-  const [state, setState] = useState<GameState>({
-    words: ['', '', ''],
-    wordsSaved: [false, false, false],
-    currentWordIndex: null,
-    guessedLetters: [],
-    teamScores: [0, 0, 0],
-    currentTeam: 0,
-    lastSpinResult: null,
-    gamePhase: 'setup',
-    isSpinning: false,
-  });
+  const [state, setState] = useState<GameState>(createInitialState());
 
-  const setWord = useCallback((index: number, word: string) => {
-    setState(prev => {
-      const newWords = [...prev.words] as [string, string, string];
-      newWords[index] = word.toUpperCase();
-      return { ...prev, words: newWords };
-    });
-  }, []);
+  const getCurrentRound = useCallback(() => {
+    return state.rounds[state.currentRoundIndex];
+  }, [state.rounds, state.currentRoundIndex]);
 
-  const saveWord = useCallback((index: number) => {
-    setState(prev => {
-      const newSaved = [...prev.wordsSaved] as [boolean, boolean, boolean];
-      newSaved[index] = true;
-      return { ...prev, wordsSaved: newSaved };
-    });
-  }, []);
+  const getCurrentPlayer = useCallback(() => {
+    const round = getCurrentRound();
+    if (!round) return null;
+    return round.players[round.currentPlayerIndex];
+  }, [getCurrentRound]);
 
-  const startRound = useCallback((wordIndex: number) => {
+  const getActivePlayers = useCallback(() => {
+    const round = getCurrentRound();
+    if (!round) return [];
+    return round.players.filter(p => !p.isEliminated);
+  }, [getCurrentRound]);
+
+  // Настройка игры - добавление раундов
+  const setupGame = useCallback((roundsData: { word: string; hint: string; players: string[] }[]) => {
+    const rounds: Round[] = roundsData.map((data, roundIndex) => ({
+      word: data.word.toUpperCase(),
+      hint: data.hint,
+      players: data.players.map((name, i) => ({
+        id: roundIndex * 10 + i,
+        name,
+        score: 0,
+        isEliminated: false,
+        consecutiveCorrectGuesses: 0,
+      })),
+      currentPlayerIndex: 0,
+      guessedLetters: [],
+      isComplete: false,
+      winnerId: null,
+    }));
+
     setState(prev => ({
       ...prev,
-      currentWordIndex: wordIndex,
-      guessedLetters: [],
-      currentTeam: wordIndex,
-      gamePhase: 'playing',
-      lastSpinResult: null,
+      phase: 'qualifying1',
+      rounds,
+      currentRoundIndex: 0,
     }));
   }, []);
 
+  // Переход к следующему активному игроку
+  const nextPlayer = useCallback(() => {
+    setState(prev => {
+      const round = { ...prev.rounds[prev.currentRoundIndex] };
+      const activePlayers = round.players.filter(p => !p.isEliminated);
+      
+      if (activePlayers.length === 0) {
+        // Никто не остался - раунд завершён без победителя
+        round.isComplete = true;
+        const newRounds = [...prev.rounds];
+        newRounds[prev.currentRoundIndex] = round;
+        return { ...prev, rounds: newRounds };
+      }
+
+      let nextIndex = (round.currentPlayerIndex + 1) % round.players.length;
+      while (round.players[nextIndex].isEliminated) {
+        nextIndex = (nextIndex + 1) % round.players.length;
+      }
+      
+      round.currentPlayerIndex = nextIndex;
+      const newRounds = [...prev.rounds];
+      newRounds[prev.currentRoundIndex] = round;
+      
+      return {
+        ...prev,
+        rounds: newRounds,
+        lastSpinResult: null,
+        mustGuessWord: false,
+        hasChanceBonus: false,
+      };
+    });
+  }, []);
+
+  // Крутить барабан
   const spinWheel = useCallback(() => {
     return new Promise<SpinResult>((resolve) => {
       setState(prev => ({ ...prev, isSpinning: true }));
@@ -116,125 +217,444 @@ export function useGameState() {
       
       setTimeout(() => {
         setState(prev => {
-          const newScores = [...prev.teamScores] as [number, number, number];
-          let newTeam = prev.currentTeam;
-          
-          if (result.type === 'bankrupt') {
-            newScores[prev.currentTeam] = 0;
-            newTeam = (prev.currentTeam + 1) % 3;
-          } else if (result.type === 'skip') {
-            newTeam = (prev.currentTeam + 1) % 3;
-          }
-          
-          return {
+          let newState = {
             ...prev,
             isSpinning: false,
             lastSpinResult: result,
-            teamScores: newScores,
-            currentTeam: newTeam,
           };
+
+          const round = { ...prev.rounds[prev.currentRoundIndex] };
+          const playerIndex = round.currentPlayerIndex;
+          const players = [...round.players];
+          const player = { ...players[playerIndex] };
+
+          if (result.type === 'bankrupt') {
+            // Банкрот - теряем все очки, ход переходит
+            player.score = 0;
+            player.consecutiveCorrectGuesses = 0;
+            players[playerIndex] = player;
+            round.players = players;
+            round.currentPlayerIndex = getNextActivePlayerIndex(round);
+            
+            const newRounds = [...prev.rounds];
+            newRounds[prev.currentRoundIndex] = round;
+            newState = { ...newState, rounds: newRounds };
+          } else if (result.type === 'zero') {
+            // Ноль - сохраняем очки, но ход переходит
+            player.consecutiveCorrectGuesses = 0;
+            players[playerIndex] = player;
+            round.players = players;
+            round.currentPlayerIndex = getNextActivePlayerIndex(round);
+            
+            const newRounds = [...prev.rounds];
+            newRounds[prev.currentRoundIndex] = round;
+            newState = { ...newState, rounds: newRounds };
+          } else if (result.type === 'prize') {
+            // Приз - ждём выбора игрока
+            newState.pendingPrizeChoice = true;
+          } else if (result.type === 'chance') {
+            // Шанс - может назвать 2 буквы
+            newState.hasChanceBonus = true;
+          } else if (result.type === 'double') {
+            // Удвоитель
+            if (prev.doubleMultiplierUsed >= 2) {
+              // Уже использован 2 раза - даём 300 очков
+              newState.lastSpinResult = { type: 'points', value: 300, label: '300 (вместо x2)' };
+            } else {
+              newState.doubleMultiplierUsed = prev.doubleMultiplierUsed + 1;
+              // Удвоитель применится при угадывании буквы
+            }
+          }
+          
+          return newState;
         });
         resolve(result);
       }, 4000);
     });
   }, []);
 
-  const guessLetter = useCallback((letter: string): { success: boolean; comment: string; alreadyGuessed: boolean } => {
-    const normalizedLetter = letter.toUpperCase();
+  // Получить индекс следующего активного игрока
+  const getNextActivePlayerIndex = (round: Round): number => {
+    const activePlayers = round.players.filter(p => !p.isEliminated);
+    if (activePlayers.length === 0) return round.currentPlayerIndex;
     
-    if (state.guessedLetters.includes(normalizedLetter)) {
+    let nextIndex = (round.currentPlayerIndex + 1) % round.players.length;
+    while (round.players[nextIndex].isEliminated) {
+      nextIndex = (nextIndex + 1) % round.players.length;
+    }
+    return nextIndex;
+  };
+
+  // Выбор по сектору "Приз"
+  const handlePrizeChoice = useCallback((takePrize: boolean) => {
+    setState(prev => {
+      if (takePrize) {
+        // Берём приз и выходим из раунда
+        const round = { ...prev.rounds[prev.currentRoundIndex] };
+        const players = [...round.players];
+        players[round.currentPlayerIndex] = {
+          ...players[round.currentPlayerIndex],
+          isEliminated: true,
+        };
+        round.players = players;
+        round.currentPlayerIndex = getNextActivePlayerIndex(round);
+        
+        const newRounds = [...prev.rounds];
+        newRounds[prev.currentRoundIndex] = round;
+        
+        return {
+          ...prev,
+          rounds: newRounds,
+          pendingPrizeChoice: false,
+          lastSpinResult: null,
+        };
+      } else {
+        // Отказываемся от приза, продолжаем играть
+        return {
+          ...prev,
+          pendingPrizeChoice: false,
+          lastSpinResult: { type: 'points', value: 100, label: '+100 (вместо приза)' },
+        };
+      }
+    });
+  }, []);
+
+  // Использовать "+" (открыть любую букву)
+  const usePlusToOpenLetter = useCallback((letter: string) => {
+    const normalizedLetter = normalizeLetter(letter);
+    
+    setState(prev => {
+      const round = { ...prev.rounds[prev.currentRoundIndex] };
+      
+      if (!round.word.includes(normalizedLetter) || round.guessedLetters.includes(normalizedLetter)) {
+        return prev; // Буквы нет или уже открыта
+      }
+      
+      round.guessedLetters = [...round.guessedLetters, normalizedLetter];
+      
+      // Проверяем победу
+      const isWordComplete = checkWordComplete(round.word, round.guessedLetters);
+      if (isWordComplete) {
+        round.isComplete = true;
+        round.winnerId = round.players[round.currentPlayerIndex].id;
+      }
+      
+      const newRounds = [...prev.rounds];
+      newRounds[prev.currentRoundIndex] = round;
+      
+      return {
+        ...prev,
+        rounds: newRounds,
+        lastSpinResult: null,
+      };
+    });
+    
+    return { success: true, comment: 'Буква открыта с помощью сектора "+"! ✨' };
+  }, []);
+
+  // Угадать букву
+  const guessLetter = useCallback((letter: string): { 
+    success: boolean; 
+    comment: string; 
+    alreadyGuessed: boolean;
+    count: number;
+  } => {
+    const normalizedLetter = normalizeLetter(letter);
+    
+    const round = getCurrentRound();
+    if (!round) {
+      return { success: false, comment: 'Ошибка!', alreadyGuessed: false, count: 0 };
+    }
+    
+    // Проверка на уже названную букву
+    if (round.guessedLetters.includes(normalizedLetter)) {
+      // Переход хода при повторе
+      nextPlayer();
       return {
         success: false,
         comment: ALREADY_GUESSED_COMMENTS[Math.floor(Math.random() * ALREADY_GUESSED_COMMENTS.length)],
         alreadyGuessed: true,
+        count: 0,
       };
     }
-
-    const currentWord = state.words[state.currentWordIndex!];
-    const isInWord = currentWord.includes(normalizedLetter);
+    
+    const normalizedWord = normalizeWord(round.word);
+    const letterCount = normalizedWord.split(normalizedLetter).length - 1;
+    const isInWord = letterCount > 0;
     
     setState(prev => {
-      const newGuessedLetters = [...prev.guessedLetters, normalizedLetter];
-      const newScores = [...prev.teamScores] as [number, number, number];
-      let newTeam = prev.currentTeam;
+      const round = { ...prev.rounds[prev.currentRoundIndex] };
+      const players = [...round.players];
+      const playerIndex = round.currentPlayerIndex;
+      const player = { ...players[playerIndex] };
       
-      if (isInWord && prev.lastSpinResult?.type === 'points') {
-        const occurrences = currentWord.split(normalizedLetter).length - 1;
-        newScores[prev.currentTeam] += prev.lastSpinResult.value * occurrences;
-      } else if (!isInWord) {
-        newTeam = (prev.currentTeam + 1) % 3;
+      round.guessedLetters = [...round.guessedLetters, normalizedLetter];
+      
+      if (isInWord) {
+        // Буква есть - начисляем очки
+        let points = (prev.lastSpinResult?.value || 0) * letterCount;
+        
+        // Применяем удвоитель если был выбран
+        if (prev.lastSpinResult?.type === 'double') {
+          points = points * 2;
+        }
+        
+        player.score += points;
+        player.consecutiveCorrectGuesses += 1;
+        
+        // Проверяем правило 3 результативных ходов (если остался 1 игрок)
+        const activePlayers = players.filter(p => !p.isEliminated);
+        const mustGuess = activePlayers.length === 1 && player.consecutiveCorrectGuesses >= 3;
+        
+        players[playerIndex] = player;
+        round.players = players;
+        
+        // Проверяем победу
+        const isWordComplete = checkWordComplete(round.word, round.guessedLetters);
+        if (isWordComplete) {
+          round.isComplete = true;
+          round.winnerId = player.id;
+        }
+        
+        const newRounds = [...prev.rounds];
+        newRounds[prev.currentRoundIndex] = round;
+        
+        return {
+          ...prev,
+          rounds: newRounds,
+          lastSpinResult: null,
+          mustGuessWord: mustGuess,
+        };
+      } else {
+        // Буквы нет - ход переходит
+        player.consecutiveCorrectGuesses = 0;
+        players[playerIndex] = player;
+        round.players = players;
+        round.currentPlayerIndex = getNextActivePlayerIndex(round);
+        
+        const newRounds = [...prev.rounds];
+        newRounds[prev.currentRoundIndex] = round;
+        
+        return {
+          ...prev,
+          rounds: newRounds,
+          lastSpinResult: null,
+          mustGuessWord: false,
+        };
       }
-
-      // Check for victory
-      const allLettersGuessed = currentWord.split('').every(
-        char => char === ' ' || char === '-' || newGuessedLetters.includes(char)
-      );
-
-      return {
-        ...prev,
-        guessedLetters: newGuessedLetters,
-        teamScores: newScores,
-        currentTeam: newTeam,
-        lastSpinResult: null,
-        gamePhase: allLettersGuessed ? 'victory' : 'playing',
-      };
     });
-
+    
     return {
       success: isInWord,
-      comment: isInWord 
+      comment: isInWord
         ? SUCCESS_COMMENTS[Math.floor(Math.random() * SUCCESS_COMMENTS.length)]
         : FAIL_COMMENTS[Math.floor(Math.random() * FAIL_COMMENTS.length)],
       alreadyGuessed: false,
+      count: letterCount,
     };
-  }, [state.guessedLetters, state.words, state.currentWordIndex]);
+  }, [getCurrentRound, nextPlayer]);
 
-  const nextTeam = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentTeam: (prev.currentTeam + 1) % 3,
-      lastSpinResult: null,
-    }));
+  // Назвать слово целиком
+  const guessWord = useCallback((word: string): { success: boolean; comment: string } => {
+    const normalizedGuess = normalizeWord(word.toUpperCase().trim());
+    const round = getCurrentRound();
+    if (!round) return { success: false, comment: 'Ошибка!' };
+    
+    const normalizedWord = normalizeWord(round.word);
+    const isCorrect = normalizedGuess === normalizedWord;
+    
+    setState(prev => {
+      const round = { ...prev.rounds[prev.currentRoundIndex] };
+      const players = [...round.players];
+      const playerIndex = round.currentPlayerIndex;
+      
+      if (isCorrect) {
+        // Верно - игрок побеждает в раунде
+        round.isComplete = true;
+        round.winnerId = players[playerIndex].id;
+        // Открываем все буквы
+        round.guessedLetters = round.word.split('').filter(c => c !== ' ' && c !== '-');
+      } else {
+        // Неверно - игрок выбывает
+        players[playerIndex] = {
+          ...players[playerIndex],
+          isEliminated: true,
+        };
+        round.players = players;
+        
+        // Проверяем остались ли игроки
+        const activePlayers = players.filter(p => !p.isEliminated);
+        if (activePlayers.length === 0) {
+          round.isComplete = true;
+        } else {
+          round.currentPlayerIndex = getNextActivePlayerIndex(round);
+        }
+      }
+      
+      const newRounds = [...prev.rounds];
+      newRounds[prev.currentRoundIndex] = round;
+      
+      return {
+        ...prev,
+        rounds: newRounds,
+        lastSpinResult: null,
+        mustGuessWord: false,
+      };
+    });
+    
+    return {
+      success: isCorrect,
+      comment: isCorrect 
+        ? '🎉 ВЕРНО! Слово угадано!' 
+        : WRONG_WORD_COMMENTS[Math.floor(Math.random() * WRONG_WORD_COMMENTS.length)],
+    };
+  }, [getCurrentRound]);
+
+  // Принудительное выбывание (если не назвал слово при правиле 3 ходов)
+  const eliminateCurrentPlayer = useCallback(() => {
+    setState(prev => {
+      const round = { ...prev.rounds[prev.currentRoundIndex] };
+      const players = [...round.players];
+      const playerIndex = round.currentPlayerIndex;
+      
+      players[playerIndex] = {
+        ...players[playerIndex],
+        isEliminated: true,
+      };
+      round.players = players;
+      
+      const activePlayers = players.filter(p => !p.isEliminated);
+      if (activePlayers.length === 0) {
+        round.isComplete = true;
+      } else {
+        round.currentPlayerIndex = getNextActivePlayerIndex(round);
+      }
+      
+      const newRounds = [...prev.rounds];
+      newRounds[prev.currentRoundIndex] = round;
+      
+      return {
+        ...prev,
+        rounds: newRounds,
+        mustGuessWord: false,
+      };
+    });
   }, []);
 
+  // Перейти к следующему раунду
+  const nextRound = useCallback(() => {
+    setState(prev => {
+      const currentRound = prev.rounds[prev.currentRoundIndex];
+      const winner = currentRound?.winnerId !== null 
+        ? currentRound.players.find(p => p.id === currentRound.winnerId) 
+        : null;
+      
+      const newFinalists = winner ? [...prev.finalists, winner] : prev.finalists;
+      
+      let nextPhase = prev.phase;
+      let nextRoundIndex = prev.currentRoundIndex;
+      
+      if (prev.phase === 'qualifying1') {
+        nextPhase = 'qualifying2';
+        nextRoundIndex = 1;
+      } else if (prev.phase === 'qualifying2') {
+        nextPhase = 'qualifying3';
+        nextRoundIndex = 2;
+      } else if (prev.phase === 'qualifying3') {
+        nextPhase = 'final';
+        nextRoundIndex = 3;
+      } else if (prev.phase === 'final') {
+        nextPhase = 'gameover';
+      }
+      
+      // Если переходим в финал, создаём финальный раунд с финалистами
+      if (nextPhase === 'final' && prev.rounds.length === 3 && newFinalists.length > 0) {
+        const finalRound: Round = {
+          word: '', // будет установлено отдельно
+          hint: '',
+          players: newFinalists.map((p, i) => ({
+            ...p,
+            id: 100 + i,
+            score: 0,
+            isEliminated: false,
+            consecutiveCorrectGuesses: 0,
+          })),
+          currentPlayerIndex: 0,
+          guessedLetters: [],
+          isComplete: false,
+          winnerId: null,
+        };
+        return {
+          ...prev,
+          phase: nextPhase,
+          currentRoundIndex: nextRoundIndex,
+          finalists: newFinalists,
+          rounds: [...prev.rounds, finalRound],
+          lastSpinResult: null,
+          mustGuessWord: false,
+        };
+      }
+      
+      return {
+        ...prev,
+        phase: nextPhase,
+        currentRoundIndex: nextRoundIndex,
+        finalists: newFinalists,
+        lastSpinResult: null,
+        mustGuessWord: false,
+      };
+    });
+  }, []);
+
+  // Установить слово для финала
+  const setFinalWord = useCallback((word: string, hint: string) => {
+    setState(prev => {
+      const newRounds = [...prev.rounds];
+      if (newRounds[3]) {
+        newRounds[3] = {
+          ...newRounds[3],
+          word: word.toUpperCase(),
+          hint,
+        };
+      }
+      return { ...prev, rounds: newRounds };
+    });
+  }, []);
+
+  // Проверить завершено ли слово
+  const checkWordComplete = (word: string, guessedLetters: string[]): boolean => {
+    const normalizedWord = normalizeWord(word);
+    return normalizedWord.split('').every(
+      char => char === ' ' || char === '-' || guessedLetters.includes(normalizeLetter(char))
+    );
+  };
+
+  // Получить случайный приз
   const getRandomPrize = useCallback(() => {
     return PRIZES[Math.floor(Math.random() * PRIZES.length)];
   }, []);
 
+  // Сброс игры
   const resetGame = useCallback(() => {
-    setState({
-      words: ['', '', ''],
-      wordsSaved: [false, false, false],
-      currentWordIndex: null,
-      guessedLetters: [],
-      teamScores: [0, 0, 0],
-      currentTeam: 0,
-      lastSpinResult: null,
-      gamePhase: 'setup',
-      isSpinning: false,
-    });
-  }, []);
-
-  const backToSetup = useCallback(() => {
-    setState(prev => ({
-      ...prev,
-      currentWordIndex: null,
-      guessedLetters: [],
-      lastSpinResult: null,
-      gamePhase: 'setup',
-    }));
+    setState(createInitialState());
   }, []);
 
   return {
     state,
-    setWord,
-    saveWord,
-    startRound,
+    getCurrentRound,
+    getCurrentPlayer,
+    getActivePlayers,
+    setupGame,
     spinWheel,
     guessLetter,
-    nextTeam,
+    guessWord,
+    nextPlayer,
+    handlePrizeChoice,
+    usePlusToOpenLetter,
+    eliminateCurrentPlayer,
+    nextRound,
+    setFinalWord,
     getRandomPrize,
     resetGame,
-    backToSetup,
   };
 }
