@@ -1,96 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Pacifico&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 150 60% 8%;
+    --foreground: 45 100% 95%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 150 50% 12%;
+    --card-foreground: 45 100% 95%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 150 50% 10%;
+    --popover-foreground: 45 100% 95%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 0 80% 55%;
+    --primary-foreground: 45 100% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 150 70% 35%;
+    --secondary-foreground: 45 100% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 150 30% 20%;
+    --muted-foreground: 45 40% 70%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 45 100% 50%;
+    --accent-foreground: 150 60% 8%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 150 40% 25%;
+    --input: 150 40% 20%;
+    --ring: 45 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
 
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Custom game colors */
+    --neon-pink: 330 100% 65%;
+    --neon-cyan: 180 100% 50%;
+    --neon-yellow: 50 100% 60%;
+    --gold: 45 100% 50%;
+    --christmas-red: 0 80% 50%;
+    --christmas-green: 150 70% 35%;
+    --snow: 0 0% 98%;
   }
 }
 
@@ -100,6 +53,230 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-nunito;
+    background: 
+      radial-gradient(ellipse at top, hsl(var(--christmas-green) / 0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom, hsl(var(--christmas-red) / 0.2) 0%, transparent 50%),
+      linear-gradient(180deg, hsl(150 60% 6%) 0%, hsl(150 60% 10%) 100%);
+    min-height: 100vh;
   }
+}
+
+@layer utilities {
+  .font-pacifico {
+    font-family: 'Pacifico', cursive;
+  }
+
+  .font-nunito {
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .text-glow {
+    text-shadow: 
+      0 0 10px hsl(var(--accent) / 0.8),
+      0 0 20px hsl(var(--accent) / 0.6),
+      0 0 40px hsl(var(--accent) / 0.4);
+  }
+
+  .text-glow-red {
+    text-shadow: 
+      0 0 10px hsl(var(--primary) / 0.8),
+      0 0 20px hsl(var(--primary) / 0.6),
+      0 0 40px hsl(var(--primary) / 0.4);
+  }
+
+  .box-glow {
+    box-shadow: 
+      0 0 20px hsl(var(--accent) / 0.4),
+      0 0 40px hsl(var(--accent) / 0.2),
+      inset 0 0 20px hsl(var(--accent) / 0.1);
+  }
+
+  .box-glow-green {
+    box-shadow: 
+      0 0 20px hsl(var(--secondary) / 0.6),
+      0 0 40px hsl(var(--secondary) / 0.3);
+  }
+
+  .box-glow-red {
+    box-shadow: 
+      0 0 20px hsl(var(--primary) / 0.6),
+      0 0 40px hsl(var(--primary) / 0.3);
+  }
+
+  .gradient-christmas {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--christmas-red)) 50%, hsl(var(--secondary)) 100%);
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, hsl(45 100% 60%) 0%, hsl(35 100% 50%) 50%, hsl(45 100% 40%) 100%);
+  }
+}
+
+/* Snowfall animation */
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10vh) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0.3;
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+@keyframes bounce-in {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes spin-wheel {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(var(--spin-degrees)); }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { 
+    box-shadow: 0 0 20px hsl(var(--accent) / 0.4);
+  }
+  50% { 
+    box-shadow: 0 0 40px hsl(var(--accent) / 0.8), 0 0 60px hsl(var(--accent) / 0.4);
+  }
+}
+
+.animate-snowfall {
+  animation: snowfall linear infinite;
+}
+
+.animate-twinkle {
+  animation: twinkle 2s ease-in-out infinite;
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+.animate-bounce-in {
+  animation: bounce-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.animate-spin-wheel {
+  animation: spin-wheel 4s cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards;
+}
+
+.animate-confetti {
+  animation: confetti-fall linear forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Letter cell styles */
+.letter-cell {
+  @apply w-12 h-14 md:w-16 md:h-20 flex items-center justify-center rounded-lg border-2 border-accent/50 bg-card text-2xl md:text-4xl font-bold uppercase transition-all duration-300;
+}
+
+.letter-cell.revealed {
+  @apply bg-accent text-accent-foreground border-accent;
+}
+
+.letter-cell.space {
+  @apply border-transparent bg-transparent;
+}
+
+/* Wheel styles */
+.wheel-container {
+  @apply relative w-72 h-72 md:w-96 md:h-96;
+}
+
+.wheel {
+  @apply w-full h-full rounded-full relative;
+  background: conic-gradient(
+    hsl(var(--primary)) 0deg 45deg,
+    hsl(var(--secondary)) 45deg 90deg,
+    hsl(var(--accent)) 90deg 135deg,
+    hsl(var(--neon-pink)) 135deg 180deg,
+    hsl(var(--neon-cyan)) 180deg 225deg,
+    hsl(var(--christmas-red)) 225deg 270deg,
+    hsl(var(--gold)) 270deg 315deg,
+    hsl(var(--christmas-green)) 315deg 360deg
+  );
+  box-shadow: 
+    0 0 30px hsl(var(--accent) / 0.5),
+    inset 0 0 50px rgba(0,0,0,0.3);
+}
+
+.wheel-pointer {
+  @apply absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 z-10;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-top: 40px solid hsl(var(--accent));
+  filter: drop-shadow(0 0 10px hsl(var(--accent)));
+}
+
+/* Team card styles */
+.team-card {
+  @apply p-4 rounded-xl border-2 transition-all duration-300;
+}
+
+.team-card.active {
+  @apply border-accent bg-accent/10 box-glow;
+}
+
+.team-card:not(.active) {
+  @apply border-border/50 bg-card/50;
+}
+
+/* Button variants */
+.btn-christmas {
+  @apply px-6 py-3 rounded-xl font-bold text-lg transition-all duration-300 transform hover:scale-105 active:scale-95;
+}
+
+.btn-primary {
+  @apply btn-christmas bg-primary text-primary-foreground hover:bg-primary/90 box-glow-red;
+}
+
+.btn-secondary {
+  @apply btn-christmas bg-secondary text-secondary-foreground hover:bg-secondary/90 box-glow-green;
+}
+
+.btn-accent {
+  @apply btn-christmas gradient-gold text-accent-foreground hover:opacity-90 box-glow;
+}
+
+.btn-outline {
+  @apply btn-christmas bg-transparent border-2 border-accent text-accent hover:bg-accent/10;
 }
