@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 export interface Player {
   id: number;
   name: string;
+  photo: string;
   score: number;
   isEliminated: boolean;
   consecutiveCorrectGuesses: number; // для правила 3 результативных ходов
@@ -150,13 +151,14 @@ export function useGameState() {
   }, [getCurrentRound]);
 
   // Настройка игры - добавление раундов
-  const setupGame = useCallback((roundsData: { word: string; hint: string; players: string[] }[]) => {
+  const setupGame = useCallback((roundsData: { word: string; hint: string; players: { name: string; photo: string }[] }[]) => {
     const rounds: Round[] = roundsData.map((data, roundIndex) => ({
       word: data.word.toUpperCase(),
       hint: data.hint,
-      players: data.players.map((name, i) => ({
+      players: data.players.map((player, i) => ({
         id: roundIndex * 10 + i,
-        name,
+        name: player.name,
+        photo: player.photo,
         score: 0,
         isEliminated: false,
         consecutiveCorrectGuesses: 0,
