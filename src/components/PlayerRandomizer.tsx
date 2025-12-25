@@ -14,12 +14,16 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
   const [finalOrder, setFinalOrder] = useState<Player[]>([]);
   const [showResult, setShowResult] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // Запускаем музыку
+    // Запускаем музыку и видео
     if (audioRef.current) {
       audioRef.current.volume = 0.5;
       audioRef.current.play().catch(() => {});
+    }
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
     }
 
     // Перемешиваем массив (Fisher-Yates shuffle)
@@ -54,6 +58,9 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
       if (audioRef.current) {
         audioRef.current.pause();
       }
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
     };
   }, [players]);
 
@@ -61,13 +68,28 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
     onComplete(finalOrder);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+    <div className="fixed inset-0 flex items-center justify-center z-50">
+      {/* Background video */}
+      <video
+        ref={videoRef}
+        src={`${BASE}video/randomizer-bg.mp4`}
+        className="absolute inset-0 w-full h-full object-cover"
+        muted
+        loop
+        playsInline
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/30" />
+
       <audio ref={audioRef} src={`${BASE}sounds/randomizer.mp3`} loop />
-      <div className="bg-card border-2 border-accent rounded-3xl p-8 max-w-2xl w-full mx-4 animate-bounce-in">
+      <div className="relative bg-card/90 border-2 border-accent rounded-3xl p-8 max-w-2xl w-full mx-4 animate-bounce-in backdrop-blur-sm">
         <div className="text-center mb-6">
           <div className="text-5xl mb-4">🎲</div>
           <h2 className="font-pacifico text-3xl text-accent text-glow mb-2">
