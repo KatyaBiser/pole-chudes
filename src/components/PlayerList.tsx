@@ -9,15 +9,15 @@ interface PlayerListProps {
 export function PlayerList({ players, currentPlayerIndex, onNextPlayer }: PlayerListProps) {
   return (
     <div className="w-full max-w-4xl mx-auto mb-6">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-5 gap-2">
         {players.map((player, index) => (
           <div
             key={player.id}
-            className={`p-4 rounded-xl border-2 transition-all duration-300 ${
+            className={`p-3 rounded-xl border-2 transition-all duration-300 ${
               player.isEliminated
                 ? 'bg-muted/30 border-muted opacity-50'
                 : index === currentPlayerIndex
-                ? 'bg-accent/20 border-accent ring-2 ring-accent animate-pulse-glow'
+                ? 'bg-accent/20 border-accent ring-2 ring-accent'
                 : 'bg-card/50 border-border'
             }`}
           >
