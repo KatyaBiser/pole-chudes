@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { GameState, SpinResult, Round, Player } from '@/hooks/useGameState';
 import { WheelSpinner } from './WheelSpinner';
 import { WordDisplay } from './WordDisplay';
@@ -7,6 +7,8 @@ import { LetterInput } from './LetterInput';
 import { Character } from './Character';
 import { PrizePopup } from './PrizePopup';
 import { VictoryScreen } from './VictoryScreen';
+
+const BASE = import.meta.env.BASE_URL;
 
 interface GameBoardProps {
   state: GameState;
@@ -47,6 +49,7 @@ export function GameBoard({
   const [wordGuess, setWordGuess] = useState('');
   const [showPlusInput, setShowPlusInput] = useState(false);
   const [plusLetter, setPlusLetter] = useState('');
+  const correctSoundRef = useRef<HTMLAudioElement | null>(null);
 
   if (!currentRound) return null;
 
@@ -80,21 +83,32 @@ export function GameBoard({
     });
   };
 
+  const playCorrectSound = () => {
+    if (correctSoundRef.current) {
+      correctSoundRef.current.currentTime = 0;
+      correctSoundRef.current.play().catch(() => {});
+    }
+  };
+
   const handleGuessLetter = (letter: string) => {
     const result = onGuessLetter(letter);
-    
+
     setMessage({
-      text: result.count > 0 
-        ? `${result.comment} (${result.count} букв${result.count > 1 ? 'ы' : 'а'}!)` 
+      text: result.count > 0
+        ? `${result.comment} (${result.count} букв${result.count > 1 ? 'ы' : 'а'}!)`
         : result.comment,
       type: result.alreadyGuessed ? 'warning' : result.success ? 'success' : 'error',
     });
+
+    if (result.success) {
+      playCorrectSound();
+    }
 
     if (!result.success && !result.alreadyGuessed) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
-    
+
     setHasSpun(false);
   };
 
@@ -146,6 +160,9 @@ export function GameBoard({
 
   return (
     <div className="min-h-screen p-4 md:p-8 relative z-10">
+      {/* Sound effects */}
+      <audio ref={correctSoundRef} src={`${BASE}sounds/correct.mp3`} />
+
       {/* Victory overlay */}
       {isRoundComplete && currentRound.winnerId !== null && (
         <VictoryScreen
