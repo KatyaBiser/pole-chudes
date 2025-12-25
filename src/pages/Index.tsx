@@ -2,10 +2,27 @@ import { useState, useEffect, useRef } from 'react';
 import { useGameState, Player } from '@/hooks/useGameState';
 import { Snowfall } from '@/components/Snowfall';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
-import { GameSetup } from '@/components/GameSetup';
 import { GameBoard } from '@/components/GameBoard';
 import { FinalSetup } from '@/components/FinalSetup';
 import { PlayerRandomizer } from '@/components/PlayerRandomizer';
+
+const BASE = import.meta.env.BASE_URL;
+
+// Захардкоженные игроки
+const PLAYERS = [
+  { name: 'Аня', photo: `${BASE}team/anna.png` },
+  { name: 'Маша', photo: `${BASE}team/masha.png` },
+  { name: 'Галя', photo: `${BASE}team/galina.png` },
+  { name: 'Валера', photo: `${BASE}team/valera.png` },
+  { name: 'Даня', photo: `${BASE}team/daniil.png` },
+];
+
+// Захардкоженные раунды - меняй слова здесь!
+const ROUNDS = [
+  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
+  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
+  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
+];
 
 const Index = () => {
   const {
@@ -31,12 +48,9 @@ const Index = () => {
   const [showRandomizer, setShowRandomizer] = useState(false);
   const lastRoundIndex = useRef(-1);
 
-  const handleStartSetup = () => {
+  const handleStartGame = () => {
     setShowWelcome(false);
-  };
-
-  const handleStartGame = (rounds: { word: string; hint: string; players: { name: string; photo: string }[] }[]) => {
-    setupGame(rounds);
+    setupGame(ROUNDS);
   };
 
   const currentRound = getCurrentRound();
@@ -75,11 +89,7 @@ const Index = () => {
       <Snowfall />
       
       {showWelcome && (
-        <WelcomeScreen onStart={handleStartSetup} />
-      )}
-      
-      {!showWelcome && state.phase === 'setup' && (
-        <GameSetup onStartGame={handleStartGame} />
+        <WelcomeScreen onStart={handleStartGame} />
       )}
 
       {!showWelcome && needsFinalSetup && (
@@ -97,7 +107,7 @@ const Index = () => {
         />
       )}
 
-      {!showWelcome && state.phase !== 'setup' && state.phase !== 'gameover' && !needsFinalSetup && !showRandomizer && (
+      {!showWelcome && state.phase !== 'gameover' && !needsFinalSetup && !showRandomizer && (
         <GameBoard
           state={state}
           currentRound={currentRound}
