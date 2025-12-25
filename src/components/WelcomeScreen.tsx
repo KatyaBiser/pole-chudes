@@ -40,10 +40,6 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
           🎄 Начать игру! 🎄
         </button>
         
-        {/* Instructions hint */}
-        <p className="text-muted-foreground mt-6 text-sm">
-          3 команды • 3 слова • бесконечное веселье
-        </p>
       </div>
     </div>
   );

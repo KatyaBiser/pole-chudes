@@ -3,12 +3,13 @@ import { useState } from 'react';
 interface RoundSetup {
   word: string;
   hint: string;
-  players: [string, string, string];
 }
 
 interface GameSetupProps {
   onStartGame: (rounds: { word: string; hint: string; players: string[] }[]) => void;
 }
+
+const PLAYERS = ['Аня', 'Маша', 'Галя', 'Валера', 'Даня'];
 
 const TEAM_COLORS = [
   { border: 'border-primary', bg: 'bg-primary/20', text: 'text-primary' },
@@ -18,27 +19,17 @@ const TEAM_COLORS = [
 
 export function GameSetup({ onStartGame }: GameSetupProps) {
   const [rounds, setRounds] = useState<RoundSetup[]>([
-    { word: '', hint: '', players: ['Игрок 1', 'Игрок 2', 'Игрок 3'] },
-    { word: '', hint: '', players: ['Игрок 4', 'Игрок 5', 'Игрок 6'] },
-    { word: '', hint: '', players: ['Игрок 7', 'Игрок 8', 'Игрок 9'] },
+    { word: '', hint: '' },
+    { word: '', hint: '' },
+    { word: '', hint: '' },
   ]);
   
   const [currentStep, setCurrentStep] = useState(0);
 
-  const updateRound = (roundIndex: number, field: keyof RoundSetup, value: string | [string, string, string]) => {
+  const updateRound = (roundIndex: number, field: keyof RoundSetup, value: string) => {
     setRounds(prev => {
       const newRounds = [...prev];
       newRounds[roundIndex] = { ...newRounds[roundIndex], [field]: value };
-      return newRounds;
-    });
-  };
-
-  const updatePlayer = (roundIndex: number, playerIndex: number, name: string) => {
-    setRounds(prev => {
-      const newRounds = [...prev];
-      const newPlayers = [...newRounds[roundIndex].players] as [string, string, string];
-      newPlayers[playerIndex] = name;
-      newRounds[roundIndex] = { ...newRounds[roundIndex], players: newPlayers };
       return newRounds;
     });
   };
@@ -52,7 +43,7 @@ export function GameSetup({ onStartGame }: GameSetupProps) {
 
   const handleStart = () => {
     if (allRoundsValid) {
-      onStartGame(rounds);
+      onStartGame(rounds.map(r => ({ ...r, players: PLAYERS })));
     }
   };
 
@@ -122,23 +113,9 @@ export function GameSetup({ onStartGame }: GameSetupProps) {
             </div>
           </div>
 
-          {/* Players */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Имена игроков 👥
-            </label>
-            <div className="grid grid-cols-3 gap-3">
-              {[0, 1, 2].map((playerIndex) => (
-                <input
-                  key={playerIndex}
-                  type="text"
-                  value={rounds[currentStep].players[playerIndex]}
-                  onChange={(e) => updatePlayer(currentStep, playerIndex, e.target.value)}
-                  placeholder={`Игрок ${playerIndex + 1}`}
-                  className="px-4 py-3 rounded-xl bg-background/50 border border-border text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent text-center"
-                />
-              ))}
-            </div>
+          {/* Players info */}
+          <div className="text-center text-muted-foreground">
+            Игроки: {PLAYERS.join(', ')}
           </div>
         </div>
 
@@ -175,17 +152,17 @@ export function GameSetup({ onStartGame }: GameSetupProps) {
         {allRoundsValid && (
           <div className="mt-8 p-4 bg-card/40 rounded-xl border border-border">
             <h4 className="font-bold text-center text-accent mb-4">Готово к игре!</h4>
-            <div className="grid grid-cols-3 gap-4 text-center text-sm">
+            <div className="grid grid-cols-3 gap-4 text-center text-sm mb-4">
               {rounds.map((round, i) => (
                 <div key={i} className="p-2">
                   <p className="text-muted-foreground">Тур {i + 1}</p>
                   <p className="font-bold text-foreground">{round.hint}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {round.players.join(', ')}
-                  </p>
                 </div>
               ))}
             </div>
+            <p className="text-center text-xs text-muted-foreground">
+              Игроки: {PLAYERS.join(', ')}
+            </p>
           </div>
         )}
       </div>
