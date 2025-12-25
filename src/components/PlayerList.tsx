@@ -13,24 +13,30 @@ export function PlayerList({ players, currentPlayerIndex, onNextPlayer }: Player
         {players.map((player, index) => (
           <div
             key={player.id}
-            className={`p-3 rounded-xl border-2 transition-all duration-300 ${
-              player.isEliminated
-                ? 'bg-muted/30 border-muted opacity-50'
-                : index === currentPlayerIndex
-                ? 'bg-accent/20 border-accent ring-2 ring-accent'
-                : 'bg-card/50 border-border'
+            className={`transition-all duration-300 ${
+              player.isEliminated ? 'opacity-50' : ''
             }`}
           >
+            {/* Фото */}
+            <div className={`rounded-xl overflow-hidden border-2 mb-2 ${
+              player.isEliminated
+                ? 'border-muted'
+                : index === currentPlayerIndex
+                ? 'border-accent ring-2 ring-accent'
+                : 'border-border'
+            }`}>
+              <img
+                src={player.photo}
+                alt={player.name}
+                className="w-full aspect-square object-cover"
+              />
+            </div>
+            {/* Имя и статус */}
             <div className="text-center">
-              <p className={`font-bold text-lg mb-1 ${
+              <p className={`font-bold text-sm ${
                 player.isEliminated ? 'text-muted-foreground line-through' : 'text-foreground'
               }`}>
                 {player.name}
-              </p>
-              <p className={`text-2xl font-bold ${
-                index === currentPlayerIndex ? 'text-accent' : 'text-muted-foreground'
-              }`}>
-                {player.score}
               </p>
               {player.isEliminated && (
                 <span className="text-xs text-destructive">Выбыл</span>
@@ -39,11 +45,6 @@ export function PlayerList({ players, currentPlayerIndex, onNextPlayer }: Player
                 <span className="inline-block mt-1 text-xs bg-accent text-accent-foreground px-2 py-0.5 rounded-full">
                   Ходит!
                 </span>
-              )}
-              {player.consecutiveCorrectGuesses > 0 && !player.isEliminated && (
-                <div className="mt-1 text-xs text-secondary">
-                  ✓ {player.consecutiveCorrectGuesses} подряд
-                </div>
               )}
             </div>
           </div>

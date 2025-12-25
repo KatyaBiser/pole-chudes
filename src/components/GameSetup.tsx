@@ -5,11 +5,24 @@ interface RoundSetup {
   hint: string;
 }
 
-interface GameSetupProps {
-  onStartGame: (rounds: { word: string; hint: string; players: string[] }[]) => void;
+interface PlayerInfo {
+  name: string;
+  photo: string;
 }
 
-const PLAYERS = ['Аня', 'Маша', 'Галя', 'Валера', 'Даня'];
+interface GameSetupProps {
+  onStartGame: (rounds: { word: string; hint: string; players: PlayerInfo[] }[]) => void;
+}
+
+const BASE = import.meta.env.BASE_URL;
+
+const PLAYERS = [
+  { name: 'Аня', photo: `${BASE}team/anna.png` },
+  { name: 'Маша', photo: `${BASE}team/masha.png` },
+  { name: 'Галя', photo: `${BASE}team/galina.png` },
+  { name: 'Валера', photo: `${BASE}team/valera.png` },
+  { name: 'Даня', photo: `${BASE}team/daniil.png` },
+];
 
 const TEAM_COLORS = [
   { border: 'border-primary', bg: 'bg-primary/20', text: 'text-primary' },
@@ -115,7 +128,7 @@ export function GameSetup({ onStartGame }: GameSetupProps) {
 
           {/* Players info */}
           <div className="text-center text-muted-foreground">
-            Игроки: {PLAYERS.join(', ')}
+            Игроки: {PLAYERS.map(p => p.name).join(', ')}
           </div>
         </div>
 
@@ -161,7 +174,7 @@ export function GameSetup({ onStartGame }: GameSetupProps) {
               ))}
             </div>
             <p className="text-center text-xs text-muted-foreground">
-              Игроки: {PLAYERS.join(', ')}
+              Игроки: {PLAYERS.map(p => p.name).join(', ')}
             </p>
           </div>
         )}

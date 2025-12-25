@@ -31,7 +31,7 @@ const Index = () => {
     setShowWelcome(false);
   };
 
-  const handleStartGame = (rounds: { word: string; hint: string; players: string[] }[]) => {
+  const handleStartGame = (rounds: { word: string; hint: string; players: { name: string; photo: string }[] }[]) => {
     setupGame(rounds);
   };
 
