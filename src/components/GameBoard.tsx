@@ -178,7 +178,6 @@ export function GameBoard({
           winner={currentRound.players.find(p => p.id === currentRound.winnerId)!}
           onNextRound={onNextRound}
           onPlayAgain={onReset}
-          isFinal={state.phase === 'final'}
         />
       )}
 

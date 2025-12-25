@@ -3,7 +3,6 @@ import { useGameState, Player } from '@/hooks/useGameState';
 import { Snowfall } from '@/components/Snowfall';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { GameBoard } from '@/components/GameBoard';
-import { FinalSetup } from '@/components/FinalSetup';
 import { PlayerRandomizer } from '@/components/PlayerRandomizer';
 
 const BASE = import.meta.env.BASE_URL;
@@ -38,7 +37,6 @@ const Index = () => {
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,
-    setFinalWord,
     getRandomPrize,
     resetGame,
     setPlayersOrder,
@@ -56,22 +54,18 @@ const Index = () => {
   const currentRound = getCurrentRound();
   const currentPlayer = getCurrentPlayer();
 
-  // Показываем настройку финала
-  const needsFinalSetup = state.phase === 'final' && currentRound && !currentRound.word;
-
   // Показываем рандомайзер при смене раунда
   useEffect(() => {
     if (
       state.phase !== 'setup' &&
       state.phase !== 'gameover' &&
       state.currentRoundIndex !== lastRoundIndex.current &&
-      currentRound &&
-      !needsFinalSetup
+      currentRound
     ) {
       lastRoundIndex.current = state.currentRoundIndex;
       setShowRandomizer(true);
     }
-  }, [state.phase, state.currentRoundIndex, currentRound, needsFinalSetup]);
+  }, [state.phase, state.currentRoundIndex, currentRound]);
 
   const handleRandomizerComplete = (shuffledPlayers: Player[]) => {
     setPlayersOrder(shuffledPlayers);
@@ -92,13 +86,6 @@ const Index = () => {
         <WelcomeScreen onStart={handleStartGame} />
       )}
 
-      {!showWelcome && needsFinalSetup && (
-        <FinalSetup 
-          finalists={state.finalists}
-          onSetWord={setFinalWord}
-        />
-      )}
-      
       {/* Рандомайзер очереди */}
       {showRandomizer && currentRound && (
         <PlayerRandomizer
@@ -108,7 +95,7 @@ const Index = () => {
         />
       )}
 
-      {!showWelcome && state.phase !== 'gameover' && !needsFinalSetup && !showRandomizer && (
+      {!showWelcome && state.phase !== 'gameover' && !showRandomizer && (
         <GameBoard
           state={state}
           currentRound={currentRound}

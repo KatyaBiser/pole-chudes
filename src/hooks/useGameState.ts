@@ -20,19 +20,15 @@ export interface Round {
 }
 
 export interface GameState {
-  phase: 'setup' | 'qualifying1' | 'qualifying2' | 'qualifying3' | 'final' | 'supergame' | 'gameover';
+  phase: 'setup' | 'qualifying1' | 'qualifying2' | 'qualifying3' | 'gameover';
   rounds: Round[];
   currentRoundIndex: number;
-  finalists: Player[];
-  superGameWords: { horizontal: string; vertical1: string; vertical2: string } | null;
-  superGameGuessedLetters: string[];
   lastSpinResult: SpinResult | null;
   isSpinning: boolean;
-  mustGuessWord: boolean; // для правила 3 результативных ходов
-  doubleMultiplierUsed: number; // сколько раз использован удвоитель
-  hasChanceBonus: boolean; // может назвать 2 буквы
-  pendingPrizeChoice: boolean; // ждём решения по призу
-  winner: Player | null;
+  mustGuessWord: boolean;
+  doubleMultiplierUsed: number;
+  hasChanceBonus: boolean;
+  pendingPrizeChoice: boolean;
 }
 
 export interface SpinResult {
@@ -119,16 +115,12 @@ const createInitialState = (): GameState => ({
   phase: 'setup',
   rounds: [],
   currentRoundIndex: 0,
-  finalists: [],
-  superGameWords: null,
-  superGameGuessedLetters: [],
   lastSpinResult: null,
   isSpinning: false,
   mustGuessWord: false,
   doubleMultiplierUsed: 0,
   hasChanceBonus: false,
   pendingPrizeChoice: false,
-  winner: null,
 });
 
 export function useGameState() {
@@ -546,16 +538,9 @@ export function useGameState() {
   // Перейти к следующему раунду
   const nextRound = useCallback(() => {
     setState(prev => {
-      const currentRound = prev.rounds[prev.currentRoundIndex];
-      const winner = currentRound?.winnerId !== null 
-        ? currentRound.players.find(p => p.id === currentRound.winnerId) 
-        : null;
-      
-      const newFinalists = winner ? [...prev.finalists, winner] : prev.finalists;
-      
       let nextPhase = prev.phase;
       let nextRoundIndex = prev.currentRoundIndex;
-      
+
       if (prev.phase === 'qualifying1') {
         nextPhase = 'qualifying2';
         nextRoundIndex = 1;
@@ -563,63 +548,16 @@ export function useGameState() {
         nextPhase = 'qualifying3';
         nextRoundIndex = 2;
       } else if (prev.phase === 'qualifying3') {
-        nextPhase = 'final';
-        nextRoundIndex = 3;
-      } else if (prev.phase === 'final') {
         nextPhase = 'gameover';
       }
-      
-      // Если переходим в финал, создаём финальный раунд с финалистами
-      if (nextPhase === 'final' && prev.rounds.length === 3 && newFinalists.length > 0) {
-        const finalRound: Round = {
-          word: '', // будет установлено отдельно
-          hint: '',
-          players: newFinalists.map((p, i) => ({
-            ...p,
-            id: 100 + i,
-            score: 0,
-            isEliminated: false,
-            consecutiveCorrectGuesses: 0,
-          })),
-          currentPlayerIndex: 0,
-          guessedLetters: [],
-          isComplete: false,
-          winnerId: null,
-        };
-        return {
-          ...prev,
-          phase: nextPhase,
-          currentRoundIndex: nextRoundIndex,
-          finalists: newFinalists,
-          rounds: [...prev.rounds, finalRound],
-          lastSpinResult: null,
-          mustGuessWord: false,
-        };
-      }
-      
+
       return {
         ...prev,
         phase: nextPhase,
         currentRoundIndex: nextRoundIndex,
-        finalists: newFinalists,
         lastSpinResult: null,
         mustGuessWord: false,
       };
-    });
-  }, []);
-
-  // Установить слово для финала
-  const setFinalWord = useCallback((word: string, hint: string) => {
-    setState(prev => {
-      const newRounds = [...prev.rounds];
-      if (newRounds[3]) {
-        newRounds[3] = {
-          ...newRounds[3],
-          word: word.toUpperCase(),
-          hint,
-        };
-      }
-      return { ...prev, rounds: newRounds };
     });
   }, []);
 
@@ -670,7 +608,6 @@ export function useGameState() {
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,
-    setFinalWord,
     getRandomPrize,
     resetGame,
     setPlayersOrder,
