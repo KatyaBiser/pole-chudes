@@ -641,6 +641,21 @@ export function useGameState() {
     setState(createInitialState());
   }, []);
 
+  // Установить порядок игроков после рандомизации
+  const setPlayersOrder = useCallback((shuffledPlayers: Player[]) => {
+    setState(prev => {
+      const newRounds = [...prev.rounds];
+      if (newRounds[prev.currentRoundIndex]) {
+        newRounds[prev.currentRoundIndex] = {
+          ...newRounds[prev.currentRoundIndex],
+          players: shuffledPlayers,
+          currentPlayerIndex: 0,
+        };
+      }
+      return { ...prev, rounds: newRounds };
+    });
+  }, []);
+
   return {
     state,
     getCurrentRound,
@@ -658,5 +673,6 @@ export function useGameState() {
     setFinalWord,
     getRandomPrize,
     resetGame,
+    setPlayersOrder,
   };
 }

@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { useGameState } from '@/hooks/useGameState';
+import { useState, useEffect, useRef } from 'react';
+import { useGameState, Player } from '@/hooks/useGameState';
 import { Snowfall } from '@/components/Snowfall';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { GameSetup } from '@/components/GameSetup';
 import { GameBoard } from '@/components/GameBoard';
 import { FinalSetup } from '@/components/FinalSetup';
+import { PlayerRandomizer } from '@/components/PlayerRandomizer';
 
 const Index = () => {
   const {
@@ -23,9 +24,12 @@ const Index = () => {
     setFinalWord,
     getRandomPrize,
     resetGame,
+    setPlayersOrder,
   } = useGameState();
 
   const [showWelcome, setShowWelcome] = useState(true);
+  const [showRandomizer, setShowRandomizer] = useState(false);
+  const lastRoundIndex = useRef(-1);
 
   const handleStartSetup = () => {
     setShowWelcome(false);
@@ -40,6 +44,31 @@ const Index = () => {
 
   // Показываем настройку финала
   const needsFinalSetup = state.phase === 'final' && currentRound && !currentRound.word;
+
+  // Показываем рандомайзер при смене раунда
+  useEffect(() => {
+    if (
+      state.phase !== 'setup' &&
+      state.phase !== 'gameover' &&
+      state.currentRoundIndex !== lastRoundIndex.current &&
+      currentRound &&
+      !needsFinalSetup
+    ) {
+      lastRoundIndex.current = state.currentRoundIndex;
+      setShowRandomizer(true);
+    }
+  }, [state.phase, state.currentRoundIndex, currentRound, needsFinalSetup]);
+
+  const handleRandomizerComplete = (shuffledPlayers: Player[]) => {
+    setPlayersOrder(shuffledPlayers);
+    setShowRandomizer(false);
+  };
+
+  const handleReset = () => {
+    lastRoundIndex.current = -1;
+    setShowWelcome(true);
+    resetGame();
+  };
 
   return (
     <div className="min-h-screen overflow-x-hidden">
@@ -60,7 +89,15 @@ const Index = () => {
         />
       )}
       
-      {!showWelcome && state.phase !== 'setup' && state.phase !== 'gameover' && !needsFinalSetup && (
+      {/* Рандомайзер очереди */}
+      {showRandomizer && currentRound && (
+        <PlayerRandomizer
+          players={currentRound.players}
+          onComplete={handleRandomizerComplete}
+        />
+      )}
+
+      {!showWelcome && state.phase !== 'setup' && state.phase !== 'gameover' && !needsFinalSetup && !showRandomizer && (
         <GameBoard
           state={state}
           currentRound={currentRound}
@@ -74,7 +111,7 @@ const Index = () => {
           onEliminatePlayer={eliminateCurrentPlayer}
           onNextRound={nextRound}
           getRandomPrize={getRandomPrize}
-          onReset={resetGame}
+          onReset={handleReset}
         />
       )}
 
@@ -88,7 +125,7 @@ const Index = () => {
             <p className="text-xl text-muted-foreground mb-8">
               Спасибо за игру! С Новым Годом! 🎉
             </p>
-            <button onClick={resetGame} className="btn-accent text-xl">
+            <button onClick={handleReset} className="btn-accent text-xl">
               🔄 Сыграть ещё раз
             </button>
           </div>
