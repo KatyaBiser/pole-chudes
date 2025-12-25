@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Player } from '@/hooks/useGameState';
+
+const BASE = import.meta.env.BASE_URL;
 
 interface PlayerRandomizerProps {
   players: Player[];
@@ -11,8 +13,15 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
   const [displayOrder, setDisplayOrder] = useState<Player[]>(players);
   const [finalOrder, setFinalOrder] = useState<Player[]>([]);
   const [showResult, setShowResult] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
+    // Запускаем музыку
+    if (audioRef.current) {
+      audioRef.current.volume = 0.5;
+      audioRef.current.play().catch(() => {});
+    }
+
     // Перемешиваем массив (Fisher-Yates shuffle)
     const shuffled = [...players];
     for (let i = shuffled.length - 1; i > 0; i--) {
@@ -40,15 +49,24 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
       }
     }, 250);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
   }, [players]);
 
   const handleContinue = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
     onComplete(finalOrder);
   };
 
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+      <audio ref={audioRef} src={`${BASE}sounds/randomizer.mp3`} loop />
       <div className="bg-card border-2 border-accent rounded-3xl p-8 max-w-2xl w-full mx-4 animate-bounce-in">
         <div className="text-center mb-6">
           <div className="text-5xl mb-4">🎲</div>
