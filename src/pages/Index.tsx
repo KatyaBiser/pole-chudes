@@ -103,6 +103,7 @@ const Index = () => {
       {showRandomizer && currentRound && (
         <PlayerRandomizer
           players={currentRound.players}
+          roundNumber={state.currentRoundIndex + 1}
           onComplete={handleRandomizerComplete}
         />
       )}
