@@ -5,10 +5,13 @@ const BASE = import.meta.env.BASE_URL;
 
 interface PlayerRandomizerProps {
   players: Player[];
+  roundNumber: number;
   onComplete: (shuffledPlayers: Player[]) => void;
 }
 
-export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps) {
+const ROUND_NAMES = ['Первый раунд', 'Второй раунд', 'Третий раунд', 'Финал'];
+
+export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRandomizerProps) {
   const [isSpinning, setIsSpinning] = useState(true);
   const [displayOrder, setDisplayOrder] = useState<Player[]>(players);
   const [finalOrder, setFinalOrder] = useState<Player[]>([]);
@@ -90,6 +93,13 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
 
       <audio ref={audioRef} src={`${BASE}sounds/randomizer.mp3`} loop />
       <div className="relative bg-card/90 border-2 border-accent rounded-3xl p-10 max-w-5xl w-full mx-4 animate-bounce-in backdrop-blur-sm">
+        {/* Номер раунда */}
+        <div className="text-center mb-4">
+          <span className="inline-block bg-accent text-accent-foreground text-2xl font-bold px-6 py-2 rounded-full">
+            {ROUND_NAMES[roundNumber - 1] || `Раунд ${roundNumber}`}
+          </span>
+        </div>
+
         <div className="text-center mb-8">
           <div className="text-6xl mb-5">🎲</div>
           <h2 className="font-pacifico text-4xl text-accent text-glow mb-3">
