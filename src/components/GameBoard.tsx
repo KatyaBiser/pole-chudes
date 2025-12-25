@@ -50,6 +50,7 @@ export function GameBoard({
   const [showPlusInput, setShowPlusInput] = useState(false);
   const [plusLetter, setPlusLetter] = useState('');
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
+  const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
 
   if (!currentRound) return null;
 
@@ -90,6 +91,13 @@ export function GameBoard({
     }
   };
 
+  const playWrongSound = () => {
+    if (wrongSoundRef.current) {
+      wrongSoundRef.current.currentTime = 0;
+      wrongSoundRef.current.play().catch(() => {});
+    }
+  };
+
   const handleGuessLetter = (letter: string) => {
     const result = onGuessLetter(letter);
 
@@ -102,9 +110,8 @@ export function GameBoard({
 
     if (result.success) {
       playCorrectSound();
-    }
-
-    if (!result.success && !result.alreadyGuessed) {
+    } else if (!result.alreadyGuessed) {
+      playWrongSound();
       setShake(true);
       setTimeout(() => setShake(false), 500);
     }
@@ -162,6 +169,7 @@ export function GameBoard({
     <div className="min-h-screen p-4 md:p-8 relative z-10">
       {/* Sound effects */}
       <audio ref={correctSoundRef} src={`${BASE}sounds/correct.mp3`} />
+      <audio ref={wrongSoundRef} src={`${BASE}sounds/wrong.mp3`} />
 
       {/* Victory overlay */}
       {isRoundComplete && currentRound.winnerId !== null && (
