@@ -89,19 +89,19 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
       <div className="absolute inset-0 bg-black/30" />
 
       <audio ref={audioRef} src={`${BASE}sounds/randomizer.mp3`} loop />
-      <div className="relative bg-card/90 border-2 border-accent rounded-3xl p-8 max-w-2xl w-full mx-4 animate-bounce-in backdrop-blur-sm">
-        <div className="text-center mb-6">
-          <div className="text-5xl mb-4">🎲</div>
-          <h2 className="font-pacifico text-3xl text-accent text-glow mb-2">
+      <div className="relative bg-card/90 border-2 border-accent rounded-3xl p-10 max-w-5xl w-full mx-4 animate-bounce-in backdrop-blur-sm">
+        <div className="text-center mb-8">
+          <div className="text-6xl mb-5">🎲</div>
+          <h2 className="font-pacifico text-4xl text-accent text-glow mb-3">
             {isSpinning ? 'Определяем очередь...' : 'Очередь определена!'}
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             {isSpinning ? 'Кто же будет первым?' : 'Вот в каком порядке будете играть:'}
           </p>
         </div>
 
         {/* Карточки игроков */}
-        <div className={`grid grid-cols-5 gap-3 mb-6 ${isSpinning ? 'animate-pulse' : ''}`}>
+        <div className={`grid grid-cols-5 gap-5 mb-8 ${isSpinning ? 'animate-pulse' : ''}`}>
           {displayOrder.map((player, index) => (
             <div
               key={player.id}
@@ -109,9 +109,9 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
                 isSpinning ? 'scale-95' : 'scale-100'
               }`}
             >
-              <div className={`rounded-xl overflow-hidden border-2 mb-2 ${
+              <div className={`rounded-xl overflow-hidden border-3 mb-3 ${
                 showResult && index === 0
-                  ? 'border-accent ring-2 ring-accent'
+                  ? 'border-accent ring-4 ring-accent'
                   : 'border-border'
               }`}>
                 <img
@@ -120,9 +120,9 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
                   className="w-full aspect-square object-cover"
                 />
               </div>
-              <p className="font-bold text-sm text-foreground">{player.name}</p>
+              <p className="font-bold text-base text-foreground">{player.name}</p>
               {showResult && (
-                <span className={`inline-block mt-1 text-xs px-2 py-0.5 rounded-full ${
+                <span className={`inline-block mt-2 text-sm px-3 py-1 rounded-full ${
                   index === 0
                     ? 'bg-accent text-accent-foreground'
                     : 'bg-muted text-muted-foreground'
@@ -139,7 +139,7 @@ export function PlayerRandomizer({ players, onComplete }: PlayerRandomizerProps)
           <div className="text-center animate-bounce-in">
             <button
               onClick={handleContinue}
-              className="btn-accent text-xl px-8 py-3"
+              className="btn-accent text-2xl px-10 py-4"
             >
               Начать раунд! 🎯
             </button>
