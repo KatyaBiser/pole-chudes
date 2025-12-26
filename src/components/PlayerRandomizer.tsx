@@ -37,13 +37,16 @@ export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRan
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    const video = videoRef.current;
+
     // Запускаем музыку и видео
-    if (audioRef.current) {
-      audioRef.current.volume = 0.5;
-      audioRef.current.play().catch(() => {});
+    if (audio) {
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
     }
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+    if (video) {
+      video.play().catch(() => {});
     }
 
     // Определяем финальный порядок сразу
@@ -98,11 +101,11 @@ export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRan
 
     return () => {
       clearInterval(interval);
-      if (audioRef.current) {
-        audioRef.current.pause();
+      if (audio) {
+        audio.pause();
       }
-      if (videoRef.current) {
-        videoRef.current.pause();
+      if (video) {
+        video.pause();
       }
     };
   }, [players]);
