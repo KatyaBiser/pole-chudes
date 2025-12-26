@@ -47,7 +47,7 @@ export function Confetti() {
       idCounter.current += 50;
 
       setPieces(prev => {
-        // Убираем старые (оставляем последние 150)
+        // Убираем старые (оставляем последние 100, чтобы с новой порцией было максимум 150)
         const trimmed = prev.slice(-100);
         return [...trimmed, ...newBatch];
       });
