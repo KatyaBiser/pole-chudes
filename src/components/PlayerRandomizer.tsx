@@ -11,11 +11,28 @@ interface PlayerRandomizerProps {
 
 const ROUND_NAMES = ['Первый раунд', 'Второй раунд', 'Третий раунд', 'Финал'];
 
+// Перемешивание Fisher-Yates
+function shuffleArray<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRandomizerProps) {
-  const [isSpinning, setIsSpinning] = useState(true);
-  const [displayOrder, setDisplayOrder] = useState<Player[]>(players);
+  // Сколько мест уже раскрыто
+  const [revealedCount, setRevealedCount] = useState(0);
+  // Финальный порядок (определяется сразу)
   const [finalOrder, setFinalOrder] = useState<Player[]>([]);
-  const [showResult, setShowResult] = useState(false);
+  // Текущий отображаемый порядок (для анимации крутящихся)
+  const [displayOrder, setDisplayOrder] = useState<Player[]>(players);
+  // Идёт ли сейчас вращение
+  const [isSpinning, setIsSpinning] = useState(true);
+  // Все места раскрыты
+  const [allRevealed, setAllRevealed] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -29,32 +46,55 @@ export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRan
       videoRef.current.play().catch(() => {});
     }
 
-    // Перемешиваем массив (Fisher-Yates shuffle)
-    const shuffled = [...players];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
+    // Определяем финальный порядок сразу
+    const shuffled = shuffleArray(players);
     setFinalOrder(shuffled);
+    setDisplayOrder(shuffled);
 
-    // Анимация перемешивания
-    let count = 0;
+    // Анимация вращения
+    let spinCount = 0;
+    let currentRevealed = 0;
+    const SPINS_PER_PLACE = 12;
+
     const interval = setInterval(() => {
-      const tempOrder = [...players];
-      for (let i = tempOrder.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [tempOrder[i], tempOrder[j]] = [tempOrder[j], tempOrder[i]];
-      }
-      setDisplayOrder(tempOrder);
-      count++;
+      spinCount++;
 
-      if (count >= 20) {
-        clearInterval(interval);
-        setDisplayOrder(shuffled);
-        setIsSpinning(false);
-        setTimeout(() => setShowResult(true), 500);
+      // Каждые SPINS_PER_PLACE итераций раскрываем следующее место
+      const shouldReveal = spinCount % SPINS_PER_PLACE === 0 && currentRevealed < players.length;
+
+      if (shouldReveal) {
+        const remainingCount = players.length - currentRevealed;
+
+        // Если осталось 2 игрока - раскрываем обоих сразу
+        if (remainingCount === 2) {
+          setDisplayOrder(shuffled);
+          setRevealedCount(players.length);
+          setAllRevealed(true);
+          setIsSpinning(false);
+          clearInterval(interval);
+          return;
+        }
+
+        // Фиксируем следующее место (без предварительного перемешивания)
+        setDisplayOrder(() => {
+          const revealed = shuffled.slice(0, currentRevealed);
+          const correctPlayer = shuffled[currentRevealed];
+          const remaining = shuffled.slice(currentRevealed + 1);
+          return [...revealed, correctPlayer, ...shuffleArray(remaining)];
+        });
+
+        currentRevealed++;
+        setRevealedCount(currentRevealed);
+      } else {
+        // Крутим только нераскрытые позиции
+        setDisplayOrder(prev => {
+          const revealed = prev.slice(0, currentRevealed);
+          const remaining = prev.slice(currentRevealed);
+          if (remaining.length <= 1) return prev;
+          return [...revealed, ...shuffleArray(remaining)];
+        });
       }
-    }, 250);
+    }, 200);
 
     return () => {
       clearInterval(interval);
@@ -103,49 +143,60 @@ export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRan
         <div className="text-center mb-8">
           <div className="text-6xl mb-5">🎲</div>
           <h2 className="font-pacifico text-4xl text-accent text-glow mb-3">
-            {isSpinning ? 'Определяем очередь...' : 'Очередь определена!'}
+            {allRevealed ? 'Очередь определена!' : 'Определяем очередь...'}
           </h2>
           <p className="text-lg text-muted-foreground">
-            {isSpinning ? 'Кто же будет первым?' : 'Вот в каком порядке будете играть:'}
+            {allRevealed ? 'Вот в каком порядке будете играть:' : 'Кто же будет следующим?'}
           </p>
         </div>
 
-        {/* Карточки игроков */}
-        <div className={`grid grid-cols-5 gap-5 mb-8 ${isSpinning ? 'animate-pulse' : ''}`}>
-          {displayOrder.map((player, index) => (
-            <div
-              key={player.id}
-              className={`text-center transition-all duration-150 ${
-                isSpinning ? 'scale-95' : 'scale-100'
-              }`}
-            >
-              <div className={`rounded-xl overflow-hidden border-3 mb-3 ${
-                showResult && index === 0
-                  ? 'border-accent ring-4 ring-accent'
-                  : 'border-border'
-              }`}>
-                <img
-                  src={player.photo}
-                  alt={player.name}
-                  className="w-full aspect-square object-cover"
-                />
-              </div>
-              <p className="font-bold text-base text-foreground">{player.name}</p>
-              {showResult && (
-                <span className={`inline-block mt-2 text-sm px-3 py-1 rounded-full ${
-                  index === 0
-                    ? 'bg-accent text-accent-foreground'
-                    : 'bg-muted text-muted-foreground'
+        {/* Карточки игроков - оригинальный дизайн */}
+        <div className="grid grid-cols-5 gap-5 mb-8">
+          {displayOrder.map((player, index) => {
+            const isRevealed = index < revealedCount;
+            const isCurrentlySpinning = !isRevealed && isSpinning;
+
+            return (
+              <div
+                key={player.id}
+                className={`text-center transition-all duration-150 ${
+                  isCurrentlySpinning ? 'scale-95' : 'scale-100'
+                }`}
+              >
+                <div className={`rounded-xl overflow-hidden border-3 mb-3 ${
+                  isRevealed && index === 0
+                    ? 'border-accent ring-4 ring-accent'
+                    : isRevealed
+                    ? 'border-green-500'
+                    : 'border-border'
                 }`}>
-                  {index === 0 ? '🥇 Первый!' : `${index + 1}-й`}
-                </span>
-              )}
-            </div>
-          ))}
+                  <img
+                    src={player.photo}
+                    alt={player.name}
+                    className="w-full aspect-square object-cover"
+                  />
+                </div>
+                <p className="font-bold text-base text-foreground">{player.name}</p>
+                {isRevealed ? (
+                  <span className={`inline-block mt-2 text-sm px-3 py-1 rounded-full ${
+                    index === 0
+                      ? 'bg-accent text-accent-foreground'
+                      : 'bg-green-500/20 text-green-400'
+                  }`}>
+                    {index === 0 ? '🥇 Первый!' : `${index + 1}-й`}
+                  </span>
+                ) : (
+                  <span className="inline-block mt-2 text-sm px-3 py-1 rounded-full bg-muted text-muted-foreground animate-pulse">
+                    ?
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Кнопка продолжить */}
-        {showResult && (
+        {allRevealed && (
           <div className="text-center animate-bounce-in">
             <button
               onClick={handleContinue}
