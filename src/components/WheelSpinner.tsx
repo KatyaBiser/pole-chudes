@@ -1,5 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { SpinResult } from '@/hooks/useGameState';
+
+const BASE = import.meta.env.BASE_URL;
 
 interface WheelSpinnerProps {
   isSpinning: boolean;
@@ -27,12 +29,27 @@ const SECTORS = [
 
 export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult }: WheelSpinnerProps) {
   const [rotation, setRotation] = useState(0);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
+    const audio = audioRef.current;
+
     if (isSpinning) {
       const spins = (5 + Math.random() * 5) * 360;
       const sectorAngle = Math.random() * 360;
       setRotation(prev => prev + spins + sectorAngle);
+
+      // Играем звук барабана
+      if (audio) {
+        audio.currentTime = 0;
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+      }
+    } else {
+      // Останавливаем звук когда барабан остановился
+      if (audio) {
+        audio.pause();
+      }
     }
   }, [isSpinning]);
 
@@ -61,6 +78,8 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult }: Wheel
 
   return (
     <div className="flex flex-col items-center gap-6">
+      <audio ref={audioRef} src={`${BASE}sounds/wheel-spin.mp3`} />
+
       {/* Wheel container */}
       <div className="wheel-container">
         {/* Pointer */}
@@ -71,7 +90,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult }: Wheel
           className="w-full h-full rounded-full relative overflow-hidden"
           style={{
             transform: `rotate(${rotation}deg)`,
-            transition: isSpinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+            transition: isSpinning ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
             boxShadow: '0 0 30px hsl(var(--accent) / 0.5), inset 0 0 50px rgba(0,0,0,0.3)',
           }}
         >

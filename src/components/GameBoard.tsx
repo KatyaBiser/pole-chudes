@@ -55,6 +55,7 @@ export function GameBoard({
   const [plusLetter, setPlusLetter] = useState('');
   const correctSoundRef = useRef<HTMLAudioElement | null>(null);
   const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
+  const wrongWordSoundRef = useRef<HTMLAudioElement | null>(null);
 
   if (!currentRound) return null;
 
@@ -115,18 +116,19 @@ export function GameBoard({
 
   const handleGuessWord = () => {
     if (!wordGuess.trim()) return;
-    
+
     const result = onGuessWord(wordGuess);
     setMessage({
       text: result.comment,
       type: result.success ? 'success' : 'error',
     });
-    
+
     if (!result.success) {
       setShake(true);
       setTimeout(() => setShake(false), 500);
+      wrongWordSoundRef.current?.play();
     }
-    
+
     setWordGuess('');
     setShowWordInput(false);
     setHasSpun(false);
@@ -164,6 +166,7 @@ export function GameBoard({
       {/* Sound effects */}
       <audio ref={correctSoundRef} src={`${BASE}sounds/correct.mp3`} />
       <audio ref={wrongSoundRef} src={`${BASE}sounds/wrong.mp3`} />
+      <audio ref={wrongWordSoundRef} src={`${BASE}sounds/wrong-word.mp3`} />
 
       {/* Victory overlay */}
       {isRoundComplete && currentRound.winnerId !== null && (
