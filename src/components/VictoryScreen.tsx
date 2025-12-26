@@ -5,10 +5,9 @@ interface VictoryScreenProps {
   word: string;
   winner: Player;
   onNextRound: () => void;
-  onPlayAgain: () => void;
 }
 
-export function VictoryScreen({ word, winner, onNextRound, onPlayAgain }: VictoryScreenProps) {
+export function VictoryScreen({ word, winner, onNextRound }: VictoryScreenProps) {
   return (
     <>
       <Confetti />
@@ -32,12 +31,9 @@ export function VictoryScreen({ word, winner, onNextRound, onPlayAgain }: Victor
             <p className="text-2xl text-foreground mt-2">{winner.score} очков! 🏆</p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button onClick={onNextRound} className="btn-secondary">
+          <div className="flex justify-center">
+            <button onClick={onNextRound} className="btn-accent">
               🎯 Следующий тур
-            </button>
-            <button onClick={onPlayAgain} className="btn-accent">
-              🔄 Сыграть заново
             </button>
           </div>
         </div>

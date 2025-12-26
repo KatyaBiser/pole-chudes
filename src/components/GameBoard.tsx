@@ -171,7 +171,6 @@ export function GameBoard({
           word={currentRound.word}
           winner={currentRound.players.find(p => p.id === currentRound.winnerId)!}
           onNextRound={onNextRound}
-          onPlayAgain={onReset}
         />
       )}
 
