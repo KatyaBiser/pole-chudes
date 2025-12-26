@@ -31,7 +31,7 @@ const SECTORS = [
 // Вынесен наружу чтобы не пересоздаваться при каждом рендере
 function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpinning: boolean; size: 'normal' | 'large' }) {
   return (
-    <div className={size === 'large' ? 'relative w-[400px] h-[400px] md:w-[500px] md:h-[500px]' : 'wheel-container'}>
+    <div className={size === 'large' ? 'relative w-[500px] h-[500px] md:w-[600px] md:h-[600px]' : 'wheel-container'}>
       {/* Pointer */}
       <div className={size === 'large' ? 'absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[20px] border-r-[20px] border-t-[40px] border-l-transparent border-r-transparent border-t-accent z-20 drop-shadow-lg' : 'wheel-pointer'} />
 
@@ -40,7 +40,7 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
         className="w-full h-full rounded-full relative overflow-hidden"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transition: isSpinning ? 'transform 10s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
+          transition: isSpinning ? 'transform 12s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none',
           boxShadow: '0 0 30px hsl(var(--accent) / 0.5), inset 0 0 50px rgba(0,0,0,0.3)',
         }}
       >
