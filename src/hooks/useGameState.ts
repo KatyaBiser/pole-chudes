@@ -1,4 +1,14 @@
 import { useState, useCallback } from 'react';
+import {
+  WHEEL_SECTORS,
+  PRIZES,
+  SUCCESS_COMMENTS,
+  FAIL_COMMENTS,
+  WRONG_WORD_COMMENTS,
+  ALREADY_GUESSED_COMMENTS,
+  SPIN_DELAY_MS,
+} from '@/config/gameConfig';
+import { normalizeLetter, normalizeWord, checkWordComplete, getRandomItem } from '@/lib/gameUtils';
 
 export interface Player {
   id: number;
@@ -35,80 +45,6 @@ export interface SpinResult {
   type: 'points' | 'bankrupt' | 'zero' | 'prize' | 'plus' | 'double' | 'chance';
   value: number;
   label: string;
-}
-
-const WHEEL_SECTORS: SpinResult[] = [
-  { type: 'points', value: 50, label: '50' },
-  { type: 'points', value: 100, label: '100' },
-  { type: 'points', value: 150, label: '150' },
-  { type: 'points', value: 200, label: '200' },
-  { type: 'points', value: 250, label: '250' },
-  { type: 'points', value: 300, label: '300' },
-  { type: 'points', value: 500, label: '500' },
-  { type: 'points', value: 1000, label: '1000' },
-  { type: 'bankrupt', value: 0, label: 'БАНКРОТ' },
-  { type: 'zero', value: 0, label: '0' },
-  { type: 'prize', value: 0, label: 'ПРИЗ 🎁' },
-  { type: 'plus', value: 0, label: '+ БУКВА' },
-  { type: 'double', value: 0, label: 'x2' },
-  { type: 'chance', value: 0, label: 'ШАНС' },
-];
-
-const PRIZES = [
-  '13-й мандарин за особые заслуги 🍊',
-  'Сертификат на одно объятие от Деда Мороза 🎅',
-  'Кружка "я чудом дожил до этого Нового года" ☕',
-  'Бессрочная лицензия на просмотр ёлки соседа 🌲',
-  'VIP-доступ к салату Оливье (1 порция) 🥗',
-  'Пожизненная подписка на снег ❄️',
-  'Право не мыть посуду 31 декабря 🍽️',
-  'Эксклюзивное место у ёлки для селфи 📸',
-  'Сертификат "Лучший угадыватель 2024" 🏆',
-  'Бутылка шампанского (виртуальная) 🍾',
-];
-
-const SUCCESS_COMMENTS = [
-  'Гениально! Прям как Эйнштейн в новогодней шапке! 🎓',
-  'Вау! Ты видишь буквы насквозь! 👀',
-  'Снегурочка аплодирует стоя! 👏',
-  'Дед Мороз одобряет! 🎅',
-  'Это было... неожиданно умно! 🧠',
-  'Ёлочные игрушки засияли от радости! ✨',
-  'Браво! Так держать! 🎉',
-];
-
-const FAIL_COMMENTS = [
-  'Ой… это было смело, но нет 😅',
-  'Буква ушла за шампанским 🍾',
-  'Снегурочка ушла к другой команде 😢',
-  'Дед Мороз сделал фейспалм 🤦',
-  'Эта буква застряла в пробке 🚗',
-  'Буква празднует в другом слове 🎉',
-  'Мимо! Но мандаринка за старание 🍊',
-];
-
-const WRONG_WORD_COMMENTS = [
-  'Увы! Это было не то слово... Ты выбываешь 😔',
-  'Не угадал! Прощай, друг, увидимся в следующем году! 👋',
-  'Слово было другим... Ты покидаешь раунд! 💔',
-];
-
-const ALREADY_GUESSED_COMMENTS = [
-  'Эта буква уже была! Память как у рыбки? 🐟',
-  'Дежавю? Эту букву уже называли! 🔄',
-  'Повтор! Дед Мороз нервничает! 😤',
-];
-
-// Нормализация буквы (Ё=Е, Й=И)
-function normalizeLetter(letter: string): string {
-  const upper = letter.toUpperCase();
-  if (upper === 'Ё') return 'Е';
-  if (upper === 'Й') return 'И';
-  return upper;
-}
-
-function normalizeWord(word: string): string {
-  return word.split('').map(normalizeLetter).join('');
 }
 
 const createInitialState = (): GameState => ({
@@ -207,7 +143,7 @@ export function useGameState() {
     return new Promise<SpinResult>((resolve) => {
       setState(prev => ({ ...prev, isSpinning: true }));
       
-      const result = WHEEL_SECTORS[Math.floor(Math.random() * WHEEL_SECTORS.length)];
+      const result = getRandomItem(WHEEL_SECTORS);
       
       setTimeout(() => {
         setState(prev => {
@@ -263,7 +199,7 @@ export function useGameState() {
           return newState;
         });
         resolve(result);
-      }, 4000);
+      }, SPIN_DELAY_MS);
     });
   }, []);
 
@@ -366,7 +302,7 @@ export function useGameState() {
       nextPlayer();
       return {
         success: false,
-        comment: ALREADY_GUESSED_COMMENTS[Math.floor(Math.random() * ALREADY_GUESSED_COMMENTS.length)],
+        comment: getRandomItem(ALREADY_GUESSED_COMMENTS),
         alreadyGuessed: true,
         count: 0,
       };
@@ -440,9 +376,7 @@ export function useGameState() {
     
     return {
       success: isInWord,
-      comment: isInWord
-        ? SUCCESS_COMMENTS[Math.floor(Math.random() * SUCCESS_COMMENTS.length)]
-        : FAIL_COMMENTS[Math.floor(Math.random() * FAIL_COMMENTS.length)],
+      comment: isInWord ? getRandomItem(SUCCESS_COMMENTS) : getRandomItem(FAIL_COMMENTS),
       alreadyGuessed: false,
       count: letterCount,
     };
@@ -500,7 +434,7 @@ export function useGameState() {
       success: isCorrect,
       comment: isCorrect 
         ? '🎉 ВЕРНО! Слово угадано!' 
-        : WRONG_WORD_COMMENTS[Math.floor(Math.random() * WRONG_WORD_COMMENTS.length)],
+        : getRandomItem(WRONG_WORD_COMMENTS),
     };
   }, [getCurrentRound]);
 
@@ -561,17 +495,9 @@ export function useGameState() {
     });
   }, []);
 
-  // Проверить завершено ли слово
-  const checkWordComplete = (word: string, guessedLetters: string[]): boolean => {
-    const normalizedWord = normalizeWord(word);
-    return normalizedWord.split('').every(
-      char => char === ' ' || char === '-' || guessedLetters.includes(normalizeLetter(char))
-    );
-  };
-
   // Получить случайный приз
   const getRandomPrize = useCallback(() => {
-    return PRIZES[Math.floor(Math.random() * PRIZES.length)];
+    return getRandomItem(PRIZES);
   }, []);
 
   // Сброс игры

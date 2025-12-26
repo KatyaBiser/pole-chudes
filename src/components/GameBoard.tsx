@@ -7,6 +7,10 @@ import { LetterInput } from './LetterInput';
 import { Character } from './Character';
 import { PrizePopup } from './PrizePopup';
 import { VictoryScreen } from './VictoryScreen';
+import { GameHeader } from './GameHeader';
+import { GuessedLetters } from './GuessedLetters';
+import { NoWinnerOverlay } from './NoWinnerOverlay';
+import { MustGuessWarning } from './MustGuessWarning';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -53,16 +57,6 @@ export function GameBoard({
   const wrongSoundRef = useRef<HTMLAudioElement | null>(null);
 
   if (!currentRound) return null;
-
-  const getPhaseTitle = () => {
-    switch (state.phase) {
-      case 'qualifying1': return 'Отборочный тур 1';
-      case 'qualifying2': return 'Отборочный тур 2';
-      case 'qualifying3': return 'Отборочный тур 3';
-      case 'final': return '🏆 ФИНАЛ 🏆';
-      default: return 'Игра';
-    }
-  };
 
   const handleSpin = () => {
     setMessage(null);
@@ -183,20 +177,7 @@ export function GameBoard({
 
       {/* No winner scenario */}
       {isRoundComplete && currentRound.winnerId === null && (
-        <div className="fixed inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-40 p-4">
-          <div className="text-center animate-bounce-in">
-            <div className="text-6xl mb-4">😢</div>
-            <h2 className="font-pacifico text-3xl text-destructive mb-4">
-              Никто не угадал!
-            </h2>
-            <p className="text-xl text-foreground mb-6">
-              Слово было: <span className="font-bold text-accent">{currentRound.word}</span>
-            </p>
-            <button onClick={onNextRound} className="btn-secondary">
-              Следующий тур →
-            </button>
-          </div>
-        </div>
+        <NoWinnerOverlay word={currentRound.word} onNextRound={onNextRound} />
       )}
 
       {/* Prize popup */}
@@ -211,14 +192,7 @@ export function GameBoard({
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-6">
-          <h1 className="font-pacifico text-3xl md:text-4xl text-accent text-glow mb-2">
-            {getPhaseTitle()}
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            💡 {currentRound.hint}
-          </p>
-        </div>
+        <GameHeader phase={state.phase} hint={currentRound.hint} />
 
         {/* Players */}
         <PlayerList
@@ -229,19 +203,10 @@ export function GameBoard({
 
         {/* Must guess word warning */}
         {state.mustGuessWord && (
-          <div className="bg-destructive/20 border border-destructive rounded-xl p-4 mb-6 text-center animate-pulse">
-            <p className="text-destructive font-bold text-lg">
-              ⚠️ Правило 3 ходов! Ты должен назвать слово или выбываешь!
-            </p>
-            <div className="flex gap-4 justify-center mt-3">
-              <button onClick={() => setShowWordInput(true)} className="btn-primary">
-                Назвать слово
-              </button>
-              <button onClick={onEliminatePlayer} className="btn-outline text-destructive border-destructive">
-                Выбыть
-              </button>
-            </div>
-          </div>
+          <MustGuessWarning
+            onGuessWord={() => setShowWordInput(true)}
+            onEliminate={onEliminatePlayer}
+          />
         )}
 
         {/* Word display */}
@@ -358,27 +323,7 @@ export function GameBoard({
             )}
 
             {/* Guessed letters */}
-            {currentRound.guessedLetters.length > 0 && (
-              <div className="mt-6">
-                <p className="text-sm text-muted-foreground text-center mb-2">
-                  Уже называли:
-                </p>
-                <div className="flex flex-wrap justify-center gap-2">
-                  {currentRound.guessedLetters.map((letter, i) => (
-                    <span
-                      key={i}
-                      className={`px-3 py-1 rounded-lg text-sm font-bold ${
-                        currentRound.word.includes(letter)
-                          ? 'bg-secondary/30 text-secondary'
-                          : 'bg-primary/30 text-primary'
-                      }`}
-                    >
-                      {letter}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+            <GuessedLetters letters={currentRound.guessedLetters} word={currentRound.word} />
           </div>
         </div>
       </div>
