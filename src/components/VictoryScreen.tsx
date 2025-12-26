@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { Confetti } from './Confetti';
 import { Player } from '@/hooks/useGameState';
+
+const BASE = import.meta.env.BASE_URL;
 
 interface VictoryScreenProps {
   word: string;
@@ -8,8 +11,25 @@ interface VictoryScreenProps {
 }
 
 export function VictoryScreen({ word, winner, onNextRound }: VictoryScreenProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    }
+
+    return () => {
+      if (audio) {
+        audio.pause();
+      }
+    };
+  }, []);
+
   return (
     <>
+      <audio ref={audioRef} src={`${BASE}sounds/winner.mp3`} loop />
       <Confetti />
       <div className="fixed inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center z-40 p-4">
         <div className="text-center animate-bounce-in">
