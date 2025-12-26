@@ -62,4 +62,4 @@ export const ALREADY_GUESSED_COMMENTS = [
   'Повтор! Дед Мороз нервничает!',
 ];
 
-export const SPIN_DELAY_MS = 4000;
+export const SPIN_DELAY_MS = 10500; // Должен быть >= времени CSS анимации (10s)
