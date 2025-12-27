@@ -40,6 +40,8 @@ export interface GameState {
   doubleMultiplierUsed: number;
   usedGifts: string[]; // Названия использованных подарков в текущем раунде
   playerGifts: Record<number, string[]>; // playerId -> список полученных подарков
+  shuffledSectorOrder: number[]; // Перемешанный порядок секторов [originalIndex, ...]
+  targetSectorPosition: number | null; // Позиция на которой должен остановиться барабан
 }
 
 export interface SpinResult {
@@ -47,6 +49,22 @@ export interface SpinResult {
   value: number;
   label: string;
   giftName?: string; // Для подарков: шоколадка, конфета, печенье
+}
+
+// Функция перемешивания массива (Fisher-Yates shuffle)
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+// Создать перемешанный порядок секторов
+function createShuffledSectorOrder(): number[] {
+  const indices = WHEEL_SECTORS.map((_, i) => i);
+  return shuffleArray(indices);
 }
 
 const createInitialState = (): GameState => ({
@@ -60,6 +78,8 @@ const createInitialState = (): GameState => ({
   doubleMultiplierUsed: 0,
   usedGifts: [],
   playerGifts: {},
+  shuffledSectorOrder: createShuffledSectorOrder(),
+  targetSectorPosition: null,
 });
 
 export function useGameState() {
@@ -144,16 +164,24 @@ export function useGameState() {
   const spinWheel = useCallback(() => {
     return new Promise<SpinResult>((resolve) => {
       setState(prev => {
-        // Фильтруем секторы - исключаем использованные подарки
-        const availableSectors = WHEEL_SECTORS.filter(sector => {
+        // Находим доступные позиции (исключаем использованные подарки)
+        const availablePositions: number[] = [];
+        for (let pos = 0; pos < prev.shuffledSectorOrder.length; pos++) {
+          const originalIndex = prev.shuffledSectorOrder[pos];
+          const sector = WHEEL_SECTORS[originalIndex];
           if (sector.type === 'gift' && sector.giftName) {
-            return !prev.usedGifts.includes(sector.giftName);
+            if (!prev.usedGifts.includes(sector.giftName)) {
+              availablePositions.push(pos);
+            }
+          } else {
+            availablePositions.push(pos);
           }
-          return true;
-        });
+        }
 
-        // Определяем результат СРАЗУ, чтобы барабан мог показать правильный сектор
-        const result = getRandomItem(availableSectors);
+        // Выбираем случайную позицию на барабане
+        const targetPosition = getRandomItem(availablePositions);
+        const originalIndex = prev.shuffledSectorOrder[targetPosition];
+        const result = WHEEL_SECTORS[originalIndex];
 
         // Запускаем таймер для обработки результата после анимации
         setTimeout(() => {
@@ -220,6 +248,7 @@ export function useGameState() {
           ...prev,
           isSpinning: true,
           pendingSpinResult: result,
+          targetSectorPosition: targetPosition,
         };
       });
     });
@@ -481,6 +510,8 @@ export function useGameState() {
         mustGuessWord: false,
         usedGifts: [], // Сброс подарков для нового раунда
         doubleMultiplierUsed: 0, // Сброс счётчика удвоителя
+        shuffledSectorOrder: createShuffledSectorOrder(), // Новый порядок секторов
+        targetSectorPosition: null,
       };
     });
   }, []);
