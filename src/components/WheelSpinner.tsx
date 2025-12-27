@@ -11,6 +11,7 @@ interface WheelSpinnerProps {
   lastResult: SpinResult | null;
   shuffledSectorOrder: number[]; // Перемешанный порядок секторов
   targetSectorPosition: number | null; // Позиция на которой остановится барабан
+  usedGifts: string[]; // Использованные подарки
 }
 
 // 24 визуальных сектора - соответствуют WHEEL_SECTORS в gameConfig.ts
@@ -38,10 +39,10 @@ const SECTORS = [
   { label: 'Б', color: '#2c3e50' },     // 18 - банкрот
   { label: '+', color: '#4caf50' },     // 19 - плюс
   { label: 'x2', color: '#ff9800' },    // 20 - удвоение
-  // Подарки (3 штуки)
-  { label: '🎁', color: '#795548' },    // 21
-  { label: '🎁', color: '#e91e63' },    // 22
-  { label: '🎁', color: '#9c27b0' },    // 23
+  // Подарки (3 штуки) - с именами для отслеживания использованных
+  { label: '🎁', color: '#795548', giftName: 'Загадочный свёрток' },    // 21
+  { label: '🎁', color: '#e91e63', giftName: 'Коробочка с сюрпризом' }, // 22
+  { label: '🎁', color: '#9c27b0', giftName: 'Нечто особенное' },       // 23
 ];
 
 // Рассчитать угол вращения чтобы стрелка указала на нужную позицию
@@ -72,14 +73,19 @@ function calculateTargetRotation(currentRotation: number, position: number, sect
 }
 
 // Вынесен наружу чтобы не пересоздаваться при каждом рендере
-function WheelGraphic({ rotation, isSpinning, size, shuffledOrder }: {
+function WheelGraphic({ rotation, isSpinning, size, shuffledOrder, usedGifts }: {
   rotation: number;
   isSpinning: boolean;
   size: 'normal' | 'large';
   shuffledOrder: number[];
+  usedGifts: string[];
 }) {
   // Используем перемешанный порядок для отображения секторов
-  const displaySectors = shuffledOrder.map(originalIndex => SECTORS[originalIndex]);
+  const displaySectors = shuffledOrder.map(originalIndex => {
+    const sector = SECTORS[originalIndex];
+    const isUsedGift = sector.giftName && usedGifts.includes(sector.giftName);
+    return { ...sector, isUsed: isUsedGift };
+  });
 
   return (
     <div className={size === 'large' ? 'relative w-[85vmin] h-[85vmin] max-w-[800px] max-h-[800px]' : 'wheel-container'}>
@@ -105,7 +111,7 @@ function WheelGraphic({ rotation, isSpinning, size, shuffledOrder }: {
               className="absolute w-1/2 h-1/2 origin-bottom-right"
               style={{
                 transform: `rotate(${rot}deg) skewY(${90 - angle}deg)`,
-                backgroundColor: sector.color,
+                backgroundColor: sector.isUsed ? '#1a1a1a' : sector.color,
                 top: 0,
                 left: 0,
               }}
@@ -122,14 +128,14 @@ function WheelGraphic({ rotation, isSpinning, size, shuffledOrder }: {
           return (
             <div
               key={`label-${i}`}
-              className={`absolute font-bold text-white drop-shadow-lg ${size === 'large' ? 'text-xl md:text-2xl' : 'text-xs md:text-sm'}`}
+              className={`absolute font-bold drop-shadow-lg ${size === 'large' ? 'text-xl md:text-2xl' : 'text-xs md:text-sm'} ${sector.isUsed ? 'text-gray-600' : 'text-white'}`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
                 transform: `translate(-50%, -50%) rotate(${angle}deg)`,
               }}
             >
-              {sector.label}
+              {sector.isUsed ? '✗' : sector.label}
             </div>
           );
         })}
@@ -145,7 +151,7 @@ function WheelGraphic({ rotation, isSpinning, size, shuffledOrder }: {
   );
 }
 
-export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, shuffledSectorOrder, targetSectorPosition }: WheelSpinnerProps) {
+export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, shuffledSectorOrder, targetSectorPosition, usedGifts }: WheelSpinnerProps) {
   const [rotation, setRotation] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -207,7 +213,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, shuffle
 
           {/* Large wheel */}
           <div className="relative z-10">
-            <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="large" shuffledOrder={shuffledSectorOrder} />
+            <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="large" shuffledOrder={shuffledSectorOrder} usedGifts={usedGifts} />
             <p className="text-center mt-8 text-2xl md:text-3xl font-bold text-accent animate-pulse">
               🎰 Крутится...
             </p>
@@ -218,7 +224,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, shuffle
 
       {/* Normal wheel view */}
       <div className="flex flex-col items-center gap-6">
-        <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="normal" shuffledOrder={shuffledSectorOrder} />
+        <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="normal" shuffledOrder={shuffledSectorOrder} usedGifts={usedGifts} />
 
         {/* Spin button */}
         <button
