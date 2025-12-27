@@ -9,6 +9,7 @@ interface WheelSpinnerProps {
   onSpin: () => void;
   disabled: boolean;
   lastResult: SpinResult | null;
+  targetResult: SpinResult | null; // Результат для синхронизации анимации
 }
 
 const SECTORS = [
@@ -27,6 +28,53 @@ const SECTORS = [
   { label: 'x2', color: '#e91e63' },
   { label: 'Ш', color: '#009688' },
 ];
+
+// Маппинг результата на индекс визуального сектора
+function getSectorIndex(result: SpinResult): number {
+  switch (result.type) {
+    case 'points':
+      // Находим сектор по значению очков
+      const pointsMap: Record<number, number> = {
+        50: 0, 100: 1, 150: 2, 200: 3, 250: 5, 300: 6, 500: 8, 1000: 10
+      };
+      return pointsMap[result.value] ?? 0;
+    case 'bankrupt': return 4;  // Б
+    case 'zero': return 7;      // 0
+    case 'prize': return 9;     // П
+    case 'plus': return 11;     // +
+    case 'double': return 12;   // x2
+    case 'chance': return 13;   // Ш
+    default: return 0;
+  }
+}
+
+// Рассчитать угол вращения чтобы стрелка указала на нужный сектор
+function calculateTargetRotation(currentRotation: number, sectorIndex: number): number {
+  const sectorCount = SECTORS.length;
+  const sectorAngle = 360 / sectorCount;
+
+  // Центр нужного сектора (угол от верха по часовой)
+  const sectorCenter = sectorIndex * sectorAngle + sectorAngle / 2;
+
+  // Чтобы этот сектор оказался под стрелкой (наверху), нужно повернуть барабан
+  // так чтобы sectorCenter совпал с 0°
+  const targetPosition = 360 - sectorCenter;
+
+  // Текущее эффективное положение барабана
+  const currentEffective = currentRotation % 360;
+
+  // Насколько нужно докрутить
+  let offset = targetPosition - currentEffective;
+  if (offset < 0) offset += 360;
+
+  // Добавляем случайное количество полных оборотов (5-8)
+  const fullSpins = (5 + Math.floor(Math.random() * 4)) * 360;
+
+  // Добавляем небольшую случайность внутри сектора (±30% от размера сектора)
+  const sectorVariation = (Math.random() - 0.5) * sectorAngle * 0.6;
+
+  return currentRotation + fullSpins + offset + sectorVariation;
+}
 
 // Вынесен наружу чтобы не пересоздаваться при каждом рендере
 function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpinning: boolean; size: 'normal' | 'large' }) {
@@ -94,19 +142,18 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
   );
 }
 
-export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult }: WheelSpinnerProps) {
+export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetResult }: WheelSpinnerProps) {
   const [rotation, setRotation] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
 
-    if (isSpinning) {
-      // Даём браузеру время отрендерить Portal и элемент с transition
+    if (isSpinning && targetResult) {
+      // Рассчитываем угол чтобы стрелка указала на нужный сектор
       const timeoutId = setTimeout(() => {
-        const spins = (5 + Math.random() * 5) * 360;
-        const sectorAngle = Math.random() * 360;
-        setRotation(prev => prev + spins + sectorAngle);
+        const sectorIndex = getSectorIndex(targetResult);
+        setRotation(prev => calculateTargetRotation(prev, sectorIndex));
       }, 50);
 
       // Играем звук барабана
@@ -117,13 +164,13 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult }: Wheel
       }
 
       return () => clearTimeout(timeoutId);
-    } else {
+    } else if (!isSpinning) {
       // Останавливаем звук когда барабан остановился
       if (audio) {
         audio.pause();
       }
     }
-  }, [isSpinning]);
+  }, [isSpinning, targetResult]);
 
   const getResultText = () => {
     if (!lastResult || isSpinning) return null;
