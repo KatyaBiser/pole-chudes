@@ -26,9 +26,9 @@ export const WHEEL_SECTORS: SpinResult[] = [
   { type: 'plus', value: 0, label: '+' },
   { type: 'double', value: 100, label: 'x2' }, // базовое значение 100 для удвоения
   // Подарки (3 штуки) - исчезают после использования
-  { type: 'gift', value: 0, label: '🍫', giftName: 'шоколадка' },
-  { type: 'gift', value: 0, label: '🍬', giftName: 'конфета' },
-  { type: 'gift', value: 0, label: '🍪', giftName: 'печенье' },
+  { type: 'gift', value: 0, label: '🎁', giftName: 'Загадочный свёрток' },
+  { type: 'gift', value: 0, label: '🎁', giftName: 'Коробочка с сюрпризом' },
+  { type: 'gift', value: 0, label: '🎁', giftName: 'Нечто особенное' },
 ];
 
 export const PRIZES = [

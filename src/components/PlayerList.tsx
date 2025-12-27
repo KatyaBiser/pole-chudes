@@ -31,13 +31,18 @@ export function PlayerList({ players, currentPlayerIndex, onNextPlayer }: Player
                 className="w-full aspect-square object-cover"
               />
             </div>
-            {/* Имя и статус */}
+            {/* Имя, очки и статус */}
             <div className="text-center">
               <p className={`font-bold text-sm ${
                 player.isEliminated ? 'text-muted-foreground line-through' : 'text-foreground'
               }`}>
                 {player.name}
               </p>
+              {!player.isEliminated && (
+                <p className="text-accent font-bold text-lg">
+                  {player.score} <span className="text-xs text-muted-foreground">очков</span>
+                </p>
+              )}
               {player.isEliminated && (
                 <span className="text-xs text-destructive">Выбыл</span>
               )}

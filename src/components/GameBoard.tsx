@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { GameState, SpinResult, Round, Player } from '@/hooks/useGameState';
+import { GameState, SpinResult, Round } from '@/hooks/useGameState';
 import { WheelSpinner } from './WheelSpinner';
 import { WordDisplay } from './WordDisplay';
 import { PlayerList } from './PlayerList';
@@ -17,7 +17,6 @@ const BASE = import.meta.env.BASE_URL;
 interface GameBoardProps {
   state: GameState;
   currentRound: Round | undefined;
-  currentPlayer: Player | null;
   onSpin: () => Promise<SpinResult>;
   onGuessLetter: (letter: string) => { success: boolean; comment: string; alreadyGuessed: boolean; count: number };
   onGuessWord: (word: string) => { success: boolean; comment: string };
@@ -25,14 +24,11 @@ interface GameBoardProps {
   onUsePlus: (letter: string) => { success: boolean; comment: string };
   onEliminatePlayer: () => void;
   onNextRound: () => void;
-  getRandomPrize: () => string;
-  onReset: () => void;
 }
 
 export function GameBoard({
   state,
   currentRound,
-  currentPlayer,
   onSpin,
   onGuessLetter,
   onGuessWord,
@@ -40,8 +36,6 @@ export function GameBoard({
   onUsePlus,
   onEliminatePlayer,
   onNextRound,
-  getRandomPrize,
-  onReset,
 }: GameBoardProps) {
   const [shake, setShake] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' | 'warning' } | null>(null);
@@ -66,15 +60,10 @@ export function GameBoard({
 
       if (result.type === 'gift' && result.giftName) {
         // Показываем popup с подарком
-        const giftEmojiMap: Record<string, string> = {
-          'шоколадка': '🍫',
-          'конфета': '🍬',
-          'печенье': '🍪',
-        };
         setTimeout(() => {
           setShowGift({
             name: result.giftName!,
-            emoji: giftEmojiMap[result.giftName!] || '🎁',
+            emoji: '🎁',
           });
         }, 500);
         // После подарка игрок крутит снова
@@ -192,7 +181,7 @@ export function GameBoard({
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <GameHeader phase={state.phase} hint={currentRound.hint} />
+        <GameHeader phase={state.phase} />
 
         {/* Players */}
         <PlayerList

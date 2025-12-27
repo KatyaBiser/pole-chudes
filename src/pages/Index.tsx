@@ -18,16 +18,15 @@ const PLAYERS = [
 
 // Захардкоженные раунды - меняй слова здесь!
 const ROUNDS = [
-  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
-  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
-  { word: 'МОЛОКО', hint: 'Молочный продукт', players: PLAYERS },
+  { word: 'МОЛОКО', players: PLAYERS },
+  { word: 'МОЛОКО', players: PLAYERS },
+  { word: 'МОЛОКО', players: PLAYERS },
 ];
 
 const Index = () => {
   const {
     state,
     getCurrentRound,
-    getCurrentPlayer,
     setupGame,
     spinWheel,
     guessLetter,
@@ -36,7 +35,6 @@ const Index = () => {
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,
-    getRandomPrize,
     resetGame,
     setPlayersOrder,
   } = useGameState();
@@ -51,7 +49,6 @@ const Index = () => {
   };
 
   const currentRound = getCurrentRound();
-  const currentPlayer = getCurrentPlayer();
 
   // Показываем рандомайзер при смене раунда
   useEffect(() => {
@@ -98,7 +95,6 @@ const Index = () => {
         <GameBoard
           state={state}
           currentRound={currentRound}
-          currentPlayer={currentPlayer}
           onSpin={spinWheel}
           onGuessLetter={guessLetter}
           onGuessWord={guessWord}
@@ -106,8 +102,6 @@ const Index = () => {
           onUsePlus={usePlusToOpenLetter}
           onEliminatePlayer={eliminateCurrentPlayer}
           onNextRound={nextRound}
-          getRandomPrize={getRandomPrize}
-          onReset={handleReset}
         />
       )}
 
