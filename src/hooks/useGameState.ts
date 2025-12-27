@@ -34,6 +34,7 @@ export interface GameState {
   rounds: Round[];
   currentRoundIndex: number;
   lastSpinResult: SpinResult | null;
+  pendingSpinResult: SpinResult | null; // Результат известен сразу, но показываем после анимации
   isSpinning: boolean;
   mustGuessWord: boolean;
   doubleMultiplierUsed: number;
@@ -52,6 +53,7 @@ const createInitialState = (): GameState => ({
   rounds: [],
   currentRoundIndex: 0,
   lastSpinResult: null,
+  pendingSpinResult: null,
   isSpinning: false,
   mustGuessWord: false,
   doubleMultiplierUsed: 0,
@@ -141,16 +143,22 @@ export function useGameState() {
   // Крутить барабан
   const spinWheel = useCallback(() => {
     return new Promise<SpinResult>((resolve) => {
-      setState(prev => ({ ...prev, isSpinning: true }));
-      
+      // Определяем результат СРАЗУ, чтобы барабан мог показать правильный сектор
       const result = getRandomItem(WHEEL_SECTORS);
-      
+
+      setState(prev => ({
+        ...prev,
+        isSpinning: true,
+        pendingSpinResult: result, // Передаём результат сразу для анимации
+      }));
+
       setTimeout(() => {
         setState(prev => {
           let newState = {
             ...prev,
             isSpinning: false,
             lastSpinResult: result,
+            pendingSpinResult: null, // Очищаем после анимации
           };
 
           const round = { ...prev.rounds[prev.currentRoundIndex] };
