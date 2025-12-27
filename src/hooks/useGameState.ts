@@ -37,6 +37,20 @@ export interface RoundHistory {
   playerScores: Record<number, { name: string; score: number }>; // playerId -> { name, score }
 }
 
+// Статистика игрока за всю игру
+export interface PlayerStats {
+  name: string;
+  photo: string;
+  totalPoints: number;
+  correctLetters: number;
+  wrongLetters: number;
+  wordsGuessed: number;
+  wordsFailed: number;
+  bankruptcies: number;
+  giftsReceived: number;
+  roundsWon: number;
+}
+
 export interface GameState {
   phase: 'setup' | 'qualifying1' | 'qualifying2' | 'qualifying3' | 'gameover';
   rounds: Round[];
@@ -50,6 +64,7 @@ export interface GameState {
   shuffledSectorOrder: number[]; // Перемешанный порядок секторов [originalIndex, ...]
   targetSectorPosition: number | null; // Позиция на которой должен остановиться барабан
   roundsHistory: RoundHistory[]; // История всех раундов для статистики
+  playerStats: Record<string, PlayerStats>; // playerName -> stats
 }
 
 export interface SpinResult {
@@ -88,6 +103,7 @@ const createInitialState = (): GameState => ({
   shuffledSectorOrder: createShuffledSectorOrder(),
   targetSectorPosition: null,
   roundsHistory: [],
+  playerStats: {},
 });
 
 export function useGameState() {
@@ -127,11 +143,31 @@ export function useGameState() {
       winnerId: null,
     }));
 
+    // Инициализируем статистику игроков (используем имя как ключ, т.к. id меняется каждый раунд)
+    const initialStats: Record<string, PlayerStats> = {};
+    if (roundsData[0]) {
+      roundsData[0].players.forEach(player => {
+        initialStats[player.name] = {
+          name: player.name,
+          photo: player.photo,
+          totalPoints: 0,
+          correctLetters: 0,
+          wrongLetters: 0,
+          wordsGuessed: 0,
+          wordsFailed: 0,
+          bankruptcies: 0,
+          giftsReceived: 0,
+          roundsWon: 0,
+        };
+      });
+    }
+
     setState(prev => ({
       ...prev,
       phase: 'qualifying1',
       rounds,
       currentRoundIndex: 0,
+      playerStats: initialStats,
     }));
   }, []);
 
@@ -215,7 +251,17 @@ export function useGameState() {
 
               const newRounds = [...innerPrev.rounds];
               newRounds[innerPrev.currentRoundIndex] = round;
-              newState = { ...newState, rounds: newRounds };
+
+              // Обновляем статистику - банкротство
+              const updatedStats = { ...innerPrev.playerStats };
+              if (updatedStats[player.name]) {
+                updatedStats[player.name] = {
+                  ...updatedStats[player.name],
+                  bankruptcies: updatedStats[player.name].bankruptcies + 1,
+                };
+              }
+
+              newState = { ...newState, rounds: newRounds, playerStats: updatedStats };
             } else if (result.type === 'zero') {
               // Ноль - сохраняем очки, но ход переходит
               player.consecutiveCorrectGuesses = 0;
@@ -235,6 +281,16 @@ export function useGameState() {
                 [playerId]: [...currentGifts, result.giftName],
               };
               newState.usedGifts = [...innerPrev.usedGifts, result.giftName];
+
+              // Обновляем статистику - подарок
+              const updatedStats = { ...innerPrev.playerStats };
+              if (updatedStats[player.name]) {
+                updatedStats[player.name] = {
+                  ...updatedStats[player.name],
+                  giftsReceived: updatedStats[player.name].giftsReceived + 1,
+                };
+              }
+              newState.playerStats = updatedStats;
               // Ход остаётся у игрока - не меняем currentPlayerIndex
             }
             // plus, double и points обрабатываются в guessLetter
@@ -337,40 +393,51 @@ export function useGameState() {
       
       round.guessedLetters = [...round.guessedLetters, normalizedLetter];
       
+      // Обновляем статистику игрока
+      const updatedStats = { ...prev.playerStats };
+      if (updatedStats[player.name]) {
+        updatedStats[player.name] = {
+          ...updatedStats[player.name],
+          correctLetters: updatedStats[player.name].correctLetters + (isInWord ? 1 : 0),
+          wrongLetters: updatedStats[player.name].wrongLetters + (isInWord ? 0 : 1),
+        };
+      }
+
       if (isInWord) {
         // Буква есть - начисляем очки
         let points = (prev.lastSpinResult?.value || 0) * letterCount;
-        
+
         // Применяем удвоитель если был выбран
         if (prev.lastSpinResult?.type === 'double') {
           points = points * 2;
         }
-        
+
         player.score += points;
         player.consecutiveCorrectGuesses += 1;
-        
+
         // Проверяем правило 3 результативных ходов (если остался 1 игрок)
         const activePlayers = players.filter(p => !p.isEliminated);
         const mustGuess = activePlayers.length === 1 && player.consecutiveCorrectGuesses >= 3;
-        
+
         players[playerIndex] = player;
         round.players = players;
-        
+
         // Проверяем победу
         const isWordComplete = checkWordComplete(round.word, round.guessedLetters);
         if (isWordComplete) {
           round.isComplete = true;
           round.winnerId = player.id;
         }
-        
+
         const newRounds = [...prev.rounds];
         newRounds[prev.currentRoundIndex] = round;
-        
+
         return {
           ...prev,
           rounds: newRounds,
           lastSpinResult: null,
           mustGuessWord: mustGuess,
+          playerStats: updatedStats,
         };
       } else {
         // Буквы нет - ход переходит
@@ -378,15 +445,16 @@ export function useGameState() {
         players[playerIndex] = player;
         round.players = players;
         round.currentPlayerIndex = getNextActivePlayerIndex(round);
-        
+
         const newRounds = [...prev.rounds];
         newRounds[prev.currentRoundIndex] = round;
-        
+
         return {
           ...prev,
           rounds: newRounds,
           lastSpinResult: null,
           mustGuessWord: false,
+          playerStats: updatedStats,
         };
       }
     });
@@ -412,7 +480,18 @@ export function useGameState() {
       const round = { ...prev.rounds[prev.currentRoundIndex] };
       const players = [...round.players];
       const playerIndex = round.currentPlayerIndex;
-      
+      const playerName = players[playerIndex].name;
+
+      // Обновляем статистику
+      const updatedStats = { ...prev.playerStats };
+      if (updatedStats[playerName]) {
+        updatedStats[playerName] = {
+          ...updatedStats[playerName],
+          wordsGuessed: updatedStats[playerName].wordsGuessed + (isCorrect ? 1 : 0),
+          wordsFailed: updatedStats[playerName].wordsFailed + (isCorrect ? 0 : 1),
+        };
+      }
+
       if (isCorrect) {
         // Верно - игрок побеждает в раунде
         round.isComplete = true;
@@ -426,7 +505,7 @@ export function useGameState() {
           isEliminated: true,
         };
         round.players = players;
-        
+
         // Проверяем остались ли игроки
         const activePlayers = players.filter(p => !p.isEliminated);
         if (activePlayers.length === 0) {
@@ -435,15 +514,16 @@ export function useGameState() {
           round.currentPlayerIndex = getNextActivePlayerIndex(round);
         }
       }
-      
+
       const newRounds = [...prev.rounds];
       newRounds[prev.currentRoundIndex] = round;
-      
+
       return {
         ...prev,
         rounds: newRounds,
         lastSpinResult: null,
         mustGuessWord: false,
+        playerStats: updatedStats,
       };
     });
     
@@ -491,18 +571,32 @@ export function useGameState() {
     setState(prev => {
       // Сохраняем историю текущего раунда
       const currentRound = prev.rounds[prev.currentRoundIndex];
+      const winnerName = currentRound.winnerId !== null
+        ? currentRound.players.find(p => p.id === currentRound.winnerId)?.name || null
+        : null;
+
       const roundHistory: RoundHistory = {
         roundIndex: prev.currentRoundIndex,
         word: currentRound.word,
         winnerId: currentRound.winnerId,
-        winnerName: currentRound.winnerId !== null
-          ? currentRound.players.find(p => p.id === currentRound.winnerId)?.name || null
-          : null,
+        winnerName,
         playerScores: currentRound.players.reduce((acc, player) => {
           acc[player.id] = { name: player.name, score: player.score };
           return acc;
         }, {} as Record<number, { name: string; score: number }>),
       };
+
+      // Обновляем статистику - очки за раунд и победы
+      const updatedStats = { ...prev.playerStats };
+      currentRound.players.forEach(player => {
+        if (updatedStats[player.name]) {
+          updatedStats[player.name] = {
+            ...updatedStats[player.name],
+            totalPoints: updatedStats[player.name].totalPoints + player.score,
+            roundsWon: updatedStats[player.name].roundsWon + (player.name === winnerName ? 1 : 0),
+          };
+        }
+      });
 
       let nextPhase = prev.phase;
       let nextRoundIndex = prev.currentRoundIndex;
@@ -527,6 +621,7 @@ export function useGameState() {
         shuffledSectorOrder: createShuffledSectorOrder(), // Новый порядок секторов
         targetSectorPosition: null,
         roundsHistory: [...prev.roundsHistory, roundHistory],
+        playerStats: updatedStats,
       };
     });
   }, []);
