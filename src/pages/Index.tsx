@@ -33,7 +33,6 @@ const Index = () => {
     guessLetter,
     guessWord,
     nextPlayer,
-    handlePrizeChoice,
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,
@@ -104,7 +103,6 @@ const Index = () => {
           onGuessLetter={guessLetter}
           onGuessWord={guessWord}
           onNextPlayer={nextPlayer}
-          onPrizeChoice={handlePrizeChoice}
           onUsePlus={usePlusToOpenLetter}
           onEliminatePlayer={eliminateCurrentPlayer}
           onNextRound={nextRound}
