@@ -248,7 +248,8 @@ export function GameBoard({
               onSpin={handleSpin}
               disabled={hasSpun || activePlayers.length === 0 || isRoundComplete}
               lastResult={state.lastSpinResult}
-              targetResult={state.pendingSpinResult}
+              shuffledSectorOrder={state.shuffledSectorOrder}
+              targetSectorPosition={state.targetSectorPosition}
             />
           </div>
 

@@ -9,7 +9,8 @@ interface WheelSpinnerProps {
   onSpin: () => void;
   disabled: boolean;
   lastResult: SpinResult | null;
-  targetResult: SpinResult | null; // Результат для синхронизации анимации
+  shuffledSectorOrder: number[]; // Перемешанный порядок секторов
+  targetSectorPosition: number | null; // Позиция на которой остановится барабан
 }
 
 // 24 визуальных сектора - соответствуют WHEEL_SECTORS в gameConfig.ts
@@ -43,50 +44,12 @@ const SECTORS = [
   { label: '🍪', color: '#ffeb3b' },    // 23 - печенье
 ];
 
-// Маппинг результата на индекс визуального сектора (24 сектора)
-function getSectorIndex(result: SpinResult): number {
-  switch (result.type) {
-    case 'points': {
-      // Для чисел с дубликатами случайно выбираем один из двух индексов
-      const pointsMap: Record<number, number[]> = {
-        10: [0, 1],
-        20: [2, 3],
-        30: [4],
-        40: [5],
-        50: [6, 7],
-        100: [8, 9],
-        200: [10, 11],
-        300: [12, 13],
-        500: [14, 15],
-        1000: [16],
-      };
-      const indices = pointsMap[result.value] ?? [0];
-      return indices[Math.floor(Math.random() * indices.length)];
-    }
-    case 'zero': return 17;
-    case 'bankrupt': return 18;
-    case 'plus': return 19;
-    case 'double': return 20;
-    case 'gift': {
-      // Подарки по названию
-      const giftMap: Record<string, number> = {
-        'шоколадка': 21,
-        'конфета': 22,
-        'печенье': 23,
-      };
-      return giftMap[result.giftName || ''] ?? 21;
-    }
-    default: return 0;
-  }
-}
-
-// Рассчитать угол вращения чтобы стрелка указала на нужный сектор
-function calculateTargetRotation(currentRotation: number, sectorIndex: number): number {
-  const sectorCount = SECTORS.length;
+// Рассчитать угол вращения чтобы стрелка указала на нужную позицию
+function calculateTargetRotation(currentRotation: number, position: number, sectorCount: number): number {
   const sectorAngle = 360 / sectorCount;
 
   // Центр нужного сектора (угол от верха по часовой)
-  const sectorCenter = sectorIndex * sectorAngle + sectorAngle / 2;
+  const sectorCenter = position * sectorAngle + sectorAngle / 2;
 
   // Чтобы этот сектор оказался под стрелкой (наверху), нужно повернуть барабан
   // так чтобы sectorCenter совпал с 0°
@@ -109,11 +72,19 @@ function calculateTargetRotation(currentRotation: number, sectorIndex: number): 
 }
 
 // Вынесен наружу чтобы не пересоздаваться при каждом рендере
-function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpinning: boolean; size: 'normal' | 'large' }) {
+function WheelGraphic({ rotation, isSpinning, size, shuffledOrder }: {
+  rotation: number;
+  isSpinning: boolean;
+  size: 'normal' | 'large';
+  shuffledOrder: number[];
+}) {
+  // Используем перемешанный порядок для отображения секторов
+  const displaySectors = shuffledOrder.map(originalIndex => SECTORS[originalIndex]);
+
   return (
-    <div className={size === 'large' ? 'relative w-[500px] h-[500px] md:w-[600px] md:h-[600px]' : 'wheel-container'}>
+    <div className={size === 'large' ? 'relative w-[85vmin] h-[85vmin] max-w-[800px] max-h-[800px]' : 'wheel-container'}>
       {/* Pointer */}
-      <div className={size === 'large' ? 'absolute -top-4 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[20px] border-r-[20px] border-t-[40px] border-l-transparent border-r-transparent border-t-accent z-20 drop-shadow-lg' : 'wheel-pointer'} />
+      <div className={size === 'large' ? 'absolute -top-6 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[25px] border-r-[25px] border-t-[50px] border-l-transparent border-r-transparent border-t-accent z-20 drop-shadow-lg' : 'wheel-pointer'} />
 
       {/* Wheel */}
       <div
@@ -125,8 +96,8 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
         }}
       >
         {/* Sectors */}
-        {SECTORS.map((sector, i) => {
-          const angle = (360 / SECTORS.length);
+        {displaySectors.map((sector, i) => {
+          const angle = (360 / displaySectors.length);
           const rot = i * angle;
           return (
             <div
@@ -143,15 +114,15 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
         })}
 
         {/* Sector labels */}
-        {SECTORS.map((sector, i) => {
-          const angle = (360 / SECTORS.length) * i + (360 / SECTORS.length / 2);
+        {displaySectors.map((sector, i) => {
+          const angle = (360 / displaySectors.length) * i + (360 / displaySectors.length / 2);
           const radius = 38;
           const x = 50 + radius * Math.cos((angle - 90) * Math.PI / 180);
           const y = 50 + radius * Math.sin((angle - 90) * Math.PI / 180);
           return (
             <div
               key={`label-${i}`}
-              className={`absolute font-bold text-white drop-shadow-lg ${size === 'large' ? 'text-lg md:text-xl' : 'text-xs md:text-sm'}`}
+              className={`absolute font-bold text-white drop-shadow-lg ${size === 'large' ? 'text-xl md:text-2xl' : 'text-xs md:text-sm'}`}
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
@@ -165,7 +136,7 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
 
         {/* Center decoration */}
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-card border-4 border-accent flex items-center justify-center shadow-lg z-10 ${
-          size === 'large' ? 'w-24 h-24 md:w-32 md:h-32 text-4xl md:text-5xl' : 'w-16 h-16 md:w-20 md:h-20 text-2xl md:text-3xl'
+          size === 'large' ? 'w-[15%] h-[15%] text-4xl md:text-6xl' : 'w-16 h-16 md:w-20 md:h-20 text-2xl md:text-3xl'
         }`}>
           🎄
         </div>
@@ -174,18 +145,17 @@ function WheelGraphic({ rotation, isSpinning, size }: { rotation: number; isSpin
   );
 }
 
-export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetResult }: WheelSpinnerProps) {
+export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, shuffledSectorOrder, targetSectorPosition }: WheelSpinnerProps) {
   const [rotation, setRotation] = useState(0);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const audio = audioRef.current;
 
-    if (isSpinning && targetResult) {
-      // Рассчитываем угол чтобы стрелка указала на нужный сектор
+    if (isSpinning && targetSectorPosition !== null) {
+      // Рассчитываем угол чтобы стрелка указала на нужную позицию
       const timeoutId = setTimeout(() => {
-        const sectorIndex = getSectorIndex(targetResult);
-        setRotation(prev => calculateTargetRotation(prev, sectorIndex));
+        setRotation(prev => calculateTargetRotation(prev, targetSectorPosition, shuffledSectorOrder.length));
       }, 50);
 
       // Играем звук барабана
@@ -202,7 +172,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
         audio.pause();
       }
     }
-  }, [isSpinning, targetResult]);
+  }, [isSpinning, targetSectorPosition, shuffledSectorOrder.length]);
 
   const getResultText = () => {
     if (!lastResult || isSpinning) return null;
@@ -237,7 +207,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
 
           {/* Large wheel */}
           <div className="relative z-10">
-            <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="large" />
+            <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="large" shuffledOrder={shuffledSectorOrder} />
             <p className="text-center mt-8 text-2xl md:text-3xl font-bold text-accent animate-pulse">
               🎰 Крутится...
             </p>
@@ -248,7 +218,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
 
       {/* Normal wheel view */}
       <div className="flex flex-col items-center gap-6">
-        <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="normal" />
+        <WheelGraphic rotation={rotation} isSpinning={isSpinning} size="normal" shuffledOrder={shuffledSectorOrder} />
 
         {/* Spin button */}
         <button
@@ -264,7 +234,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
           <div className="animate-bounce-in text-center max-w-sm">
             <p className={`text-xl font-bold ${
               lastResult.type === 'bankrupt' ? 'text-destructive' :
-              lastResult.type === 'prize' || lastResult.type === 'plus' || lastResult.type === 'double' || lastResult.type === 'chance'
+              lastResult.type === 'plus' || lastResult.type === 'double' || lastResult.type === 'gift'
                 ? 'text-accent' : 'text-secondary'
             }`}>
               {getResultText()}
