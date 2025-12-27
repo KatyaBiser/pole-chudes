@@ -239,6 +239,7 @@ export function GameBoard({
               lastResult={state.lastSpinResult}
               shuffledSectorOrder={state.shuffledSectorOrder}
               targetSectorPosition={state.targetSectorPosition}
+              usedGifts={state.usedGifts}
             />
           </div>
 
