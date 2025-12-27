@@ -21,12 +21,20 @@ export interface Player {
 
 export interface Round {
   word: string;
-  hint: string;
   players: Player[];
   currentPlayerIndex: number;
   guessedLetters: string[];
   isComplete: boolean;
   winnerId: number | null;
+}
+
+// История раунда для статистики
+export interface RoundHistory {
+  roundIndex: number;
+  word: string;
+  winnerId: number | null;
+  winnerName: string | null;
+  playerScores: Record<number, { name: string; score: number }>; // playerId -> { name, score }
 }
 
 export interface GameState {
@@ -37,11 +45,11 @@ export interface GameState {
   pendingSpinResult: SpinResult | null; // Результат известен сразу, но показываем после анимации
   isSpinning: boolean;
   mustGuessWord: boolean;
-  doubleMultiplierUsed: number;
   usedGifts: string[]; // Названия использованных подарков в текущем раунде
   playerGifts: Record<number, string[]>; // playerId -> список полученных подарков
   shuffledSectorOrder: number[]; // Перемешанный порядок секторов [originalIndex, ...]
   targetSectorPosition: number | null; // Позиция на которой должен остановиться барабан
+  roundsHistory: RoundHistory[]; // История всех раундов для статистики
 }
 
 export interface SpinResult {
@@ -75,11 +83,11 @@ const createInitialState = (): GameState => ({
   pendingSpinResult: null,
   isSpinning: false,
   mustGuessWord: false,
-  doubleMultiplierUsed: 0,
   usedGifts: [],
   playerGifts: {},
   shuffledSectorOrder: createShuffledSectorOrder(),
   targetSectorPosition: null,
+  roundsHistory: [],
 });
 
 export function useGameState() {
@@ -102,10 +110,9 @@ export function useGameState() {
   }, [getCurrentRound]);
 
   // Настройка игры - добавление раундов
-  const setupGame = useCallback((roundsData: { word: string; hint: string; players: { name: string; photo: string }[] }[]) => {
+  const setupGame = useCallback((roundsData: { word: string; players: { name: string; photo: string }[] }[]) => {
     const rounds: Round[] = roundsData.map((data, roundIndex) => ({
       word: data.word.toUpperCase(),
-      hint: data.hint,
       players: data.players.map((player, i) => ({
         id: roundIndex * 10 + i,
         name: player.name,
@@ -229,15 +236,8 @@ export function useGameState() {
               };
               newState.usedGifts = [...innerPrev.usedGifts, result.giftName];
               // Ход остаётся у игрока - не меняем currentPlayerIndex
-            } else if (result.type === 'double') {
-              // Удвоитель - если уже использован 2 раза, даём 300 очков
-              if (innerPrev.doubleMultiplierUsed >= 2) {
-                newState.lastSpinResult = { type: 'points', value: 300, label: '300 (вместо x2)' };
-              } else {
-                newState.doubleMultiplierUsed = innerPrev.doubleMultiplierUsed + 1;
-              }
             }
-            // plus и points обрабатываются в guessLetter
+            // plus, double и points обрабатываются в guessLetter
 
             return newState;
           });
@@ -489,6 +489,21 @@ export function useGameState() {
   // Перейти к следующему раунду
   const nextRound = useCallback(() => {
     setState(prev => {
+      // Сохраняем историю текущего раунда
+      const currentRound = prev.rounds[prev.currentRoundIndex];
+      const roundHistory: RoundHistory = {
+        roundIndex: prev.currentRoundIndex,
+        word: currentRound.word,
+        winnerId: currentRound.winnerId,
+        winnerName: currentRound.winnerId !== null
+          ? currentRound.players.find(p => p.id === currentRound.winnerId)?.name || null
+          : null,
+        playerScores: currentRound.players.reduce((acc, player) => {
+          acc[player.id] = { name: player.name, score: player.score };
+          return acc;
+        }, {} as Record<number, { name: string; score: number }>),
+      };
+
       let nextPhase = prev.phase;
       let nextRoundIndex = prev.currentRoundIndex;
 
@@ -509,9 +524,9 @@ export function useGameState() {
         lastSpinResult: null,
         mustGuessWord: false,
         usedGifts: [], // Сброс подарков для нового раунда
-        doubleMultiplierUsed: 0, // Сброс счётчика удвоителя
         shuffledSectorOrder: createShuffledSectorOrder(), // Новый порядок секторов
         targetSectorPosition: null,
+        roundsHistory: [...prev.roundsHistory, roundHistory],
       };
     });
   }, []);
