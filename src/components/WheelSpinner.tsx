@@ -12,38 +12,70 @@ interface WheelSpinnerProps {
   targetResult: SpinResult | null; // Результат для синхронизации анимации
 }
 
+// 24 визуальных сектора - соответствуют WHEEL_SECTORS в gameConfig.ts
 const SECTORS = [
-  { label: '50', color: '#e74c3c' },
-  { label: '100', color: '#27ae60' },
-  { label: '150', color: '#f39c12' },
-  { label: '200', color: '#9b59b6' },
-  { label: 'Б', color: '#2c3e50' },
-  { label: '250', color: '#e91e63' },
-  { label: '300', color: '#00bcd4' },
-  { label: '0', color: '#607d8b' },
-  { label: '500', color: '#ff5722' },
-  { label: 'П', color: '#4caf50' },
-  { label: '1000', color: '#ffc107' },
-  { label: '+', color: '#3f51b5' },
-  { label: 'x2', color: '#e91e63' },
-  { label: 'Ш', color: '#009688' },
+  // Числовые секторы (17 штук)
+  { label: '10', color: '#e74c3c' },    // 0
+  { label: '10', color: '#3498db' },    // 1
+  { label: '20', color: '#27ae60' },    // 2
+  { label: '20', color: '#9b59b6' },    // 3
+  { label: '30', color: '#f39c12' },    // 4
+  { label: '40', color: '#1abc9c' },    // 5
+  { label: '50', color: '#e91e63' },    // 6
+  { label: '50', color: '#00bcd4' },    // 7
+  { label: '100', color: '#ff5722' },   // 8
+  { label: '100', color: '#8e44ad' },   // 9
+  { label: '200', color: '#2ecc71' },   // 10
+  { label: '200', color: '#e67e22' },   // 11
+  { label: '300', color: '#3f51b5' },   // 12
+  { label: '300', color: '#009688' },   // 13
+  { label: '500', color: '#f44336' },   // 14
+  { label: '500', color: '#673ab7' },   // 15
+  { label: '1000', color: '#ffc107' },  // 16
+  // Специальные секторы (4 штуки)
+  { label: '0', color: '#607d8b' },     // 17 - ноль
+  { label: 'Б', color: '#2c3e50' },     // 18 - банкрот
+  { label: '+', color: '#4caf50' },     // 19 - плюс
+  { label: 'x2', color: '#ff9800' },    // 20 - удвоение
+  // Подарки (3 штуки)
+  { label: '🍫', color: '#795548' },    // 21 - шоколадка
+  { label: '🍬', color: '#e91e63' },    // 22 - конфета
+  { label: '🍪', color: '#ffeb3b' },    // 23 - печенье
 ];
 
-// Маппинг результата на индекс визуального сектора
+// Маппинг результата на индекс визуального сектора (24 сектора)
 function getSectorIndex(result: SpinResult): number {
   switch (result.type) {
-    case 'points':
-      // Находим сектор по значению очков
-      const pointsMap: Record<number, number> = {
-        50: 0, 100: 1, 150: 2, 200: 3, 250: 5, 300: 6, 500: 8, 1000: 10
+    case 'points': {
+      // Для чисел с дубликатами случайно выбираем один из двух индексов
+      const pointsMap: Record<number, number[]> = {
+        10: [0, 1],
+        20: [2, 3],
+        30: [4],
+        40: [5],
+        50: [6, 7],
+        100: [8, 9],
+        200: [10, 11],
+        300: [12, 13],
+        500: [14, 15],
+        1000: [16],
       };
-      return pointsMap[result.value] ?? 0;
-    case 'bankrupt': return 4;  // Б
-    case 'zero': return 7;      // 0
-    case 'prize': return 9;     // П
-    case 'plus': return 11;     // +
-    case 'double': return 12;   // x2
-    case 'chance': return 13;   // Ш
+      const indices = pointsMap[result.value] ?? [0];
+      return indices[Math.floor(Math.random() * indices.length)];
+    }
+    case 'zero': return 17;
+    case 'bankrupt': return 18;
+    case 'plus': return 19;
+    case 'double': return 20;
+    case 'gift': {
+      // Подарки по названию
+      const giftMap: Record<string, number> = {
+        'шоколадка': 21,
+        'конфета': 22,
+        'печенье': 23,
+      };
+      return giftMap[result.giftName || ''] ?? 21;
+    }
     default: return 0;
   }
 }
@@ -174,7 +206,7 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
 
   const getResultText = () => {
     if (!lastResult || isSpinning) return null;
-    
+
     switch (lastResult.type) {
       case 'points':
         return `Выпало: ${lastResult.value} очков за букву!`;
@@ -182,14 +214,12 @@ export function WheelSpinner({ isSpinning, onSpin, disabled, lastResult, targetR
         return '💀 БАНКРОТ! Все очки сгорели...';
       case 'zero':
         return '😅 Ноль! Очки остаются, но ход переходит...';
-      case 'prize':
-        return '🎁 ПРИЗ! Возьми или продолжай играть?';
       case 'plus':
         return '➕ Открой любую букву по выбору!';
       case 'double':
         return '✖️2 Удвоитель! Очки за букву удвоятся!';
-      case 'chance':
-        return '🍀 ШАНС! Можешь назвать 2 буквы!';
+      case 'gift':
+        return `🎁 ПОДАРОК! Вы получили ${lastResult.giftName}!`;
       default:
         return lastResult.label;
     }

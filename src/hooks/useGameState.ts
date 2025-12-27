@@ -38,14 +38,15 @@ export interface GameState {
   isSpinning: boolean;
   mustGuessWord: boolean;
   doubleMultiplierUsed: number;
-  hasChanceBonus: boolean;
-  pendingPrizeChoice: boolean;
+  usedGifts: string[]; // Названия использованных подарков в текущем раунде
+  playerGifts: Record<number, string[]>; // playerId -> список полученных подарков
 }
 
 export interface SpinResult {
-  type: 'points' | 'bankrupt' | 'zero' | 'prize' | 'plus' | 'double' | 'chance';
+  type: 'points' | 'bankrupt' | 'zero' | 'plus' | 'double' | 'gift';
   value: number;
   label: string;
+  giftName?: string; // Для подарков: шоколадка, конфета, печенье
 }
 
 const createInitialState = (): GameState => ({
@@ -57,8 +58,8 @@ const createInitialState = (): GameState => ({
   isSpinning: false,
   mustGuessWord: false,
   doubleMultiplierUsed: 0,
-  hasChanceBonus: false,
-  pendingPrizeChoice: false,
+  usedGifts: [],
+  playerGifts: {},
 });
 
 export function useGameState() {
@@ -135,7 +136,6 @@ export function useGameState() {
         rounds: newRounds,
         lastSpinResult: null,
         mustGuessWord: false,
-        hasChanceBonus: false,
       };
     });
   }, []);
@@ -143,71 +143,85 @@ export function useGameState() {
   // Крутить барабан
   const spinWheel = useCallback(() => {
     return new Promise<SpinResult>((resolve) => {
-      // Определяем результат СРАЗУ, чтобы барабан мог показать правильный сектор
-      const result = getRandomItem(WHEEL_SECTORS);
-
-      setState(prev => ({
-        ...prev,
-        isSpinning: true,
-        pendingSpinResult: result, // Передаём результат сразу для анимации
-      }));
-
-      setTimeout(() => {
-        setState(prev => {
-          let newState = {
-            ...prev,
-            isSpinning: false,
-            lastSpinResult: result,
-            pendingSpinResult: null, // Очищаем после анимации
-          };
-
-          const round = { ...prev.rounds[prev.currentRoundIndex] };
-          const playerIndex = round.currentPlayerIndex;
-          const players = [...round.players];
-          const player = { ...players[playerIndex] };
-
-          if (result.type === 'bankrupt') {
-            // Банкрот - теряем все очки, ход переходит
-            player.score = 0;
-            player.consecutiveCorrectGuesses = 0;
-            players[playerIndex] = player;
-            round.players = players;
-            round.currentPlayerIndex = getNextActivePlayerIndex(round);
-            
-            const newRounds = [...prev.rounds];
-            newRounds[prev.currentRoundIndex] = round;
-            newState = { ...newState, rounds: newRounds };
-          } else if (result.type === 'zero') {
-            // Ноль - сохраняем очки, но ход переходит
-            player.consecutiveCorrectGuesses = 0;
-            players[playerIndex] = player;
-            round.players = players;
-            round.currentPlayerIndex = getNextActivePlayerIndex(round);
-            
-            const newRounds = [...prev.rounds];
-            newRounds[prev.currentRoundIndex] = round;
-            newState = { ...newState, rounds: newRounds };
-          } else if (result.type === 'prize') {
-            // Приз - ждём выбора игрока
-            newState.pendingPrizeChoice = true;
-          } else if (result.type === 'chance') {
-            // Шанс - может назвать 2 буквы
-            newState.hasChanceBonus = true;
-          } else if (result.type === 'double') {
-            // Удвоитель
-            if (prev.doubleMultiplierUsed >= 2) {
-              // Уже использован 2 раза - даём 300 очков
-              newState.lastSpinResult = { type: 'points', value: 300, label: '300 (вместо x2)' };
-            } else {
-              newState.doubleMultiplierUsed = prev.doubleMultiplierUsed + 1;
-              // Удвоитель применится при угадывании буквы
-            }
+      setState(prev => {
+        // Фильтруем секторы - исключаем использованные подарки
+        const availableSectors = WHEEL_SECTORS.filter(sector => {
+          if (sector.type === 'gift' && sector.giftName) {
+            return !prev.usedGifts.includes(sector.giftName);
           }
-          
-          return newState;
+          return true;
         });
-        resolve(result);
-      }, SPIN_DELAY_MS);
+
+        // Определяем результат СРАЗУ, чтобы барабан мог показать правильный сектор
+        const result = getRandomItem(availableSectors);
+
+        // Запускаем таймер для обработки результата после анимации
+        setTimeout(() => {
+          setState(innerPrev => {
+            let newState = {
+              ...innerPrev,
+              isSpinning: false,
+              lastSpinResult: result,
+              pendingSpinResult: null,
+            };
+
+            const round = { ...innerPrev.rounds[innerPrev.currentRoundIndex] };
+            const playerIndex = round.currentPlayerIndex;
+            const players = [...round.players];
+            const player = { ...players[playerIndex] };
+
+            if (result.type === 'bankrupt') {
+              // Банкрот - теряем все очки раунда, ход переходит
+              player.score = 0;
+              player.consecutiveCorrectGuesses = 0;
+              players[playerIndex] = player;
+              round.players = players;
+              round.currentPlayerIndex = getNextActivePlayerIndex(round);
+
+              const newRounds = [...innerPrev.rounds];
+              newRounds[innerPrev.currentRoundIndex] = round;
+              newState = { ...newState, rounds: newRounds };
+            } else if (result.type === 'zero') {
+              // Ноль - сохраняем очки, но ход переходит
+              player.consecutiveCorrectGuesses = 0;
+              players[playerIndex] = player;
+              round.players = players;
+              round.currentPlayerIndex = getNextActivePlayerIndex(round);
+
+              const newRounds = [...innerPrev.rounds];
+              newRounds[innerPrev.currentRoundIndex] = round;
+              newState = { ...newState, rounds: newRounds };
+            } else if (result.type === 'gift' && result.giftName) {
+              // Подарок - добавляем игроку, сектор исчезает, ход остаётся
+              const playerId = player.id;
+              const currentGifts = innerPrev.playerGifts[playerId] || [];
+              newState.playerGifts = {
+                ...innerPrev.playerGifts,
+                [playerId]: [...currentGifts, result.giftName],
+              };
+              newState.usedGifts = [...innerPrev.usedGifts, result.giftName];
+              // Ход остаётся у игрока - не меняем currentPlayerIndex
+            } else if (result.type === 'double') {
+              // Удвоитель - если уже использован 2 раза, даём 300 очков
+              if (innerPrev.doubleMultiplierUsed >= 2) {
+                newState.lastSpinResult = { type: 'points', value: 300, label: '300 (вместо x2)' };
+              } else {
+                newState.doubleMultiplierUsed = innerPrev.doubleMultiplierUsed + 1;
+              }
+            }
+            // plus и points обрабатываются в guessLetter
+
+            return newState;
+          });
+          resolve(result);
+        }, SPIN_DELAY_MS);
+
+        return {
+          ...prev,
+          isSpinning: true,
+          pendingSpinResult: result,
+        };
+      });
     });
   }, []);
 
@@ -222,40 +236,6 @@ export function useGameState() {
     }
     return nextIndex;
   };
-
-  // Выбор по сектору "Приз"
-  const handlePrizeChoice = useCallback((takePrize: boolean) => {
-    setState(prev => {
-      if (takePrize) {
-        // Берём приз и выходим из раунда
-        const round = { ...prev.rounds[prev.currentRoundIndex] };
-        const players = [...round.players];
-        players[round.currentPlayerIndex] = {
-          ...players[round.currentPlayerIndex],
-          isEliminated: true,
-        };
-        round.players = players;
-        round.currentPlayerIndex = getNextActivePlayerIndex(round);
-        
-        const newRounds = [...prev.rounds];
-        newRounds[prev.currentRoundIndex] = round;
-        
-        return {
-          ...prev,
-          rounds: newRounds,
-          pendingPrizeChoice: false,
-          lastSpinResult: null,
-        };
-      } else {
-        // Отказываемся от приза, продолжаем играть
-        return {
-          ...prev,
-          pendingPrizeChoice: false,
-          lastSpinResult: { type: 'points', value: 100, label: '+100 (вместо приза)' },
-        };
-      }
-    });
-  }, []);
 
   // Использовать "+" (открыть любую букву)
   const usePlusToOpenLetter = useCallback((letter: string) => {
@@ -499,6 +479,8 @@ export function useGameState() {
         currentRoundIndex: nextRoundIndex,
         lastSpinResult: null,
         mustGuessWord: false,
+        usedGifts: [], // Сброс подарков для нового раунда
+        doubleMultiplierUsed: 0, // Сброс счётчика удвоителя
       };
     });
   }, []);
@@ -538,7 +520,6 @@ export function useGameState() {
     guessLetter,
     guessWord,
     nextPlayer,
-    handlePrizeChoice,
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,

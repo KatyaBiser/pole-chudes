@@ -1,20 +1,34 @@
 import type { SpinResult } from '@/hooks/useGameState';
 
+// 24 сектора по документации spin_logic.md
 export const WHEEL_SECTORS: SpinResult[] = [
+  // Числовые секторы (17 штук)
+  { type: 'points', value: 10, label: '10' },
+  { type: 'points', value: 10, label: '10' },
+  { type: 'points', value: 20, label: '20' },
+  { type: 'points', value: 20, label: '20' },
+  { type: 'points', value: 30, label: '30' },
+  { type: 'points', value: 40, label: '40' },
+  { type: 'points', value: 50, label: '50' },
   { type: 'points', value: 50, label: '50' },
   { type: 'points', value: 100, label: '100' },
-  { type: 'points', value: 150, label: '150' },
+  { type: 'points', value: 100, label: '100' },
   { type: 'points', value: 200, label: '200' },
-  { type: 'points', value: 250, label: '250' },
+  { type: 'points', value: 200, label: '200' },
+  { type: 'points', value: 300, label: '300' },
   { type: 'points', value: 300, label: '300' },
   { type: 'points', value: 500, label: '500' },
+  { type: 'points', value: 500, label: '500' },
   { type: 'points', value: 1000, label: '1000' },
-  { type: 'bankrupt', value: 0, label: 'БАНКРОТ' },
+  // Специальные секторы (4 штуки)
   { type: 'zero', value: 0, label: '0' },
-  { type: 'prize', value: 0, label: 'ПРИЗ' },
+  { type: 'bankrupt', value: 0, label: 'Б' },
   { type: 'plus', value: 0, label: '+' },
-  { type: 'double', value: 0, label: 'x2' },
-  { type: 'chance', value: 0, label: 'ШАНС' },
+  { type: 'double', value: 100, label: 'x2' }, // базовое значение 100 для удвоения
+  // Подарки (3 штуки) - исчезают после использования
+  { type: 'gift', value: 0, label: '🍫', giftName: 'шоколадка' },
+  { type: 'gift', value: 0, label: '🍬', giftName: 'конфета' },
+  { type: 'gift', value: 0, label: '🍪', giftName: 'печенье' },
 ];
 
 export const PRIZES = [
