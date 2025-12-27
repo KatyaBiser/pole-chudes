@@ -1,14 +1,13 @@
 import { useState, useCallback } from 'react';
 import {
   WHEEL_SECTORS,
-  PRIZES,
   SUCCESS_COMMENTS,
   FAIL_COMMENTS,
   WRONG_WORD_COMMENTS,
   ALREADY_GUESSED_COMMENTS,
   SPIN_DELAY_MS,
 } from '@/config/gameConfig';
-import { normalizeLetter, normalizeWord, checkWordComplete, getRandomItem } from '@/lib/gameUtils';
+import { normalizeLetter, normalizeWord, checkWordComplete, getRandomItem, shuffleArray } from '@/lib/gameUtils';
 
 export interface Player {
   id: number;
@@ -72,16 +71,6 @@ export interface SpinResult {
   value: number;
   label: string;
   giftName?: string; // Для подарков: шоколадка, конфета, печенье
-}
-
-// Функция перемешивания массива (Fisher-Yates shuffle)
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
 }
 
 // Создать перемешанный порядок секторов
@@ -626,11 +615,6 @@ export function useGameState() {
     });
   }, []);
 
-  // Получить случайный приз
-  const getRandomPrize = useCallback(() => {
-    return getRandomItem(PRIZES);
-  }, []);
-
   // Сброс игры
   const resetGame = useCallback(() => {
     setState(createInitialState());
@@ -664,7 +648,6 @@ export function useGameState() {
     usePlusToOpenLetter,
     eliminateCurrentPlayer,
     nextRound,
-    getRandomPrize,
     resetGame,
     setPlayersOrder,
   };
