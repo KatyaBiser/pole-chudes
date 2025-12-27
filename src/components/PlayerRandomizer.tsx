@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Player } from '@/hooks/useGameState';
+import { shuffleArray } from '@/lib/gameUtils';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -10,16 +11,6 @@ interface PlayerRandomizerProps {
 }
 
 const ROUND_NAMES = ['Первый раунд', 'Второй раунд', 'Третий раунд', 'Финал'];
-
-// Перемешивание Fisher-Yates
-function shuffleArray<T>(array: T[]): T[] {
-  const result = [...array];
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
 
 export function PlayerRandomizer({ players, roundNumber, onComplete }: PlayerRandomizerProps) {
   // Сколько мест уже раскрыто

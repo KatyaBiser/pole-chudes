@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { PlayerStats, RoundHistory } from '@/hooks/useGameState';
+import { PlayerStats } from '@/hooks/useGameState';
 import { Confetti } from './Confetti';
 
 const BASE = import.meta.env.BASE_URL;
 
 interface FinalStatsProps {
   playerStats: Record<string, PlayerStats>;
-  roundsHistory: RoundHistory[];
   onReset: () => void;
 }
 
@@ -115,7 +114,7 @@ function AwardReveal({
   );
 }
 
-export function FinalStats({ playerStats, roundsHistory, onReset }: FinalStatsProps) {
+export function FinalStats({ playerStats, onReset }: FinalStatsProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const drumrollRef = useRef<HTMLAudioElement>(null);
   const players = Object.values(playerStats);

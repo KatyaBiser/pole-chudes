@@ -109,7 +109,6 @@ const Index = () => {
       {state.phase === 'gameover' && (
         <FinalStats
           playerStats={state.playerStats}
-          roundsHistory={state.roundsHistory}
           onReset={handleReset}
         />
       )}
