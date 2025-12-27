@@ -4,6 +4,7 @@ import { Snowfall } from '@/components/Snowfall';
 import { WelcomeScreen } from '@/components/WelcomeScreen';
 import { GameBoard } from '@/components/GameBoard';
 import { PlayerRandomizer } from '@/components/PlayerRandomizer';
+import { FinalStats } from '@/components/FinalStats';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -106,20 +107,11 @@ const Index = () => {
       )}
 
       {state.phase === 'gameover' && (
-        <div className="min-h-screen flex items-center justify-center p-4 relative z-10">
-          <div className="text-center">
-            <div className="text-8xl mb-6 animate-float">🎄</div>
-            <h1 className="font-pacifico text-5xl text-accent text-glow mb-6">
-              Игра завершена!
-            </h1>
-            <p className="text-xl text-muted-foreground mb-8">
-              Спасибо за игру! С Новым Годом! 🎉
-            </p>
-            <button onClick={handleReset} className="btn-accent text-xl">
-              🔄 Сыграть ещё раз
-            </button>
-          </div>
-        </div>
+        <FinalStats
+          playerStats={state.playerStats}
+          roundsHistory={state.roundsHistory}
+          onReset={handleReset}
+        />
       )}
     </div>
   );

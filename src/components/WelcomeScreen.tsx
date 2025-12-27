@@ -43,11 +43,11 @@ export function WelcomeScreen({ onStart }: WelcomeScreenProps) {
         {isPlaying ? '🔊' : '🔇'}
       </button>
 
-      {/* Decorative elements */}
-      <div className="absolute top-10 left-10 text-6xl animate-float" style={{ animationDelay: '0s' }}>🎄</div>
-      <div className="absolute top-20 right-20 text-5xl animate-float" style={{ animationDelay: '0.5s' }}>⭐</div>
-      <div className="absolute bottom-20 left-20 text-5xl animate-float" style={{ animationDelay: '1s' }}>🎁</div>
-      <div className="absolute bottom-10 right-10 text-6xl animate-float" style={{ animationDelay: '1.5s' }}>🍊</div>
+      {/* Decorative elements - aligned in rectangle */}
+      <div className="absolute top-16 left-16 text-6xl animate-float" style={{ animationDelay: '0s' }}>🎄</div>
+      <div className="absolute top-16 right-16 text-5xl animate-float" style={{ animationDelay: '0.5s' }}>⭐</div>
+      <div className="absolute bottom-16 left-16 text-5xl animate-float" style={{ animationDelay: '1s' }}>🎁</div>
+      <div className="absolute bottom-16 right-16 text-6xl animate-float" style={{ animationDelay: '1.5s' }}>🍊</div>
       
       <div className="text-center max-w-3xl">
         {/* Main title */}
